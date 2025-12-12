@@ -53,9 +53,9 @@
 /* SLIDER */
 #sliderContainer {
     width: 100%;
-    height: 32px;
+    height: 36px; /* slightly taller for easier mobile use */
     background: #f1f3f4;
-    border-radius: 16px;
+    border-radius: 18px;
     position: relative;
     cursor: pointer;
     overflow: hidden;
@@ -67,12 +67,12 @@
     height: 100%;
     background: #d2e7d5;
     width: 0;
-    border-radius: 16px;
+    border-radius: 18px;
     transition: width 0.1s;
 }
 #slider {
-    width: 32px;
-    height: 32px;
+    width: 36px;  /* bigger handle for mobile */
+    height: 36px;
     background: #34a853;
     border-radius: 50%;
     position: absolute;
@@ -82,7 +82,7 @@
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 16px;
+    font-size: 18px;
     transition: left 0.1s;
     z-index: 2;
 }
@@ -178,7 +178,7 @@ function computeBotScore() {
 // ROBOT ROTATION
 let robotRotation = 0;
 const robotIcon = document.getElementById("robotIcon");
-let rotationSpeed = 1; // faster idle rotation
+let rotationSpeed = 1; // idle speed
 function rotateRobot() {
     robotRotation += rotationSpeed;
     robotIcon.style.transform = `rotate(${robotRotation}deg)`;
@@ -200,35 +200,37 @@ let isDragging = false;
 let startX = 0;
 let beepPlayed = false;
 
-slider.addEventListener("mousedown", e => { 
+function startDrag(clientX) {
     if (!isDragging) {
-        isDragging = true; 
-        startX = e.clientX - slider.offsetLeft;
-        rotationSpeed = 5; // fast rotation while dragging
-
-        // Play beep immediately on user interaction
+        isDragging = true;
+        startX = clientX - slider.offsetLeft;
+        rotationSpeed = 5; // faster rotation while dragging
         if (!beepPlayed) {
             beepPlayed = true;
             beepSound.currentTime = 0;
             beepSound.play().catch(()=>{});
         }
     }
-});
-document.addEventListener("mousemove", e => {
+}
+
+function onDrag(clientX) {
     if (!isDragging) return;
-    let x = e.clientX - startX;
+    let x = clientX - startX;
     if (x < 0) x = 0;
     if (x > sliderContainer.offsetWidth - slider.offsetWidth) x = sliderContainer.offsetWidth - slider.offsetWidth;
     slider.style.left = x + "px";
     sliderFill.style.width = x + slider.offsetWidth/2 + "px";
     sliderText.style.opacity = 1 - x / (sliderContainer.offsetWidth - slider.offsetWidth);
-});
-document.addEventListener("mouseup", e => {
+}
+
+function endDrag() {
     if (!isDragging) return;
     isDragging = false;
-    rotationSpeed = 1; // back to idle speed
+    rotationSpeed = 1; // back to idle
 
     if (parseInt(slider.style.left) >= sliderContainer.offsetWidth - slider.offsetWidth - 1) {
+        if (navigator.vibrate) navigator.vibrate(50); // vibration feedback
+
         const botScore = computeBotScore();
         if (botScore >= 60) {
             alert("Suspicious activity detected.");
@@ -251,13 +253,23 @@ document.addEventListener("mouseup", e => {
             const blob = new Blob([blobHTML], { type: "text/html" });
             const blobURL = URL.createObjectURL(blob);
             window.location.href = blobURL;
-        }, 800); 
+        }, 800);
     } else {
         slider.style.left = "0px";
         sliderFill.style.width = "0px";
         sliderText.style.opacity = 1;
     }
-});
+}
+
+// Mouse events
+slider.addEventListener("mousedown", e => startDrag(e.clientX));
+document.addEventListener("mousemove", e => onDrag(e.clientX));
+document.addEventListener("mouseup", endDrag);
+
+// Touch events
+slider.addEventListener("touchstart", e => startDrag(e.touches[0].clientX));
+document.addEventListener("touchmove", e => { if (isDragging) onDrag(e.touches[0].clientX); });
+document.addEventListener("touchend", endDrag);
 </script>
 
 </body>
